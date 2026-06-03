@@ -47,9 +47,12 @@ LlamaManager/
 ```
 
 ### 3. Descarga los binarios (Si no usas el Auto-Updater)
-Puedes descargar la última release de [llama.cpp en GitHub](https://github.com/ggerganov/llama.cpp/releases) y extraer los `.exe` (como `llama-cli.exe`, `llama-server.exe`) y los `.dll` dentro de la carpeta `bin/`. 
+Si prefieres descargar todo manualmente:
+1. Ve a la página oficial de descargas: **[Releases de llama.cpp](https://github.com/ggerganov/llama.cpp/releases)**
+2. Busca el archivo `.zip` correspondiente a tu sistema operativo (Para Windows, suele llamarse algo como `llama-bXXXX-bin-win-vulkan-x64.zip` o `...win-cuda-x64.zip` si tienes NVIDIA).
+3. Extrae todos los `.exe` (como `llama-cli.exe`, `llama-server.exe`) y los `.dll` dentro de la carpeta `bin/`.
 
-*Nota: Alternativamente, si pones solo un ejecutable en `bin/`, puedes usar la opción de "Actualizar llama.cpp" del menú principal para que baje el resto automáticamente.*
+*Nota: Alternativamente, puedes simplemente usar la opción "[10] Actualizar llama.cpp" del menú principal para que el administrador descargue e instale la última versión por ti automáticamente.*
 
 ### 4. Ejecución
 Haz doble clic en **`LlamaManager.bat`**. ¡Eso es todo!
