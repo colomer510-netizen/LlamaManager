@@ -16,7 +16,7 @@
 # ================================================================
 
 # Ruta base: la carpeta donde vive este script (junto a bin/)
-$Script:BasePath      = $PSScriptRoot
+$Script:BasePath      = Split-Path $PSScriptRoot -Parent
 $Script:BinPath       = Join-Path $Script:BasePath "bin"
 $Script:ProfilePath   = Join-Path $Script:BasePath "profiles"
 $Script:Version       = "3.0.0"
