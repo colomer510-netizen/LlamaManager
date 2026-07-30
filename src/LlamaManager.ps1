@@ -26,7 +26,7 @@ $Script:ProfilePath   = Join-Path $Script:BasePath "profiles"
 $Script:Version       = "4.0.0"
 
 $Script:ModelsPath    = Join-Path $Script:BasePath "models"
-$Script:ModelSearchPaths = @($Script:ModelsPath)
+$Script:ModelSearchPaths = @($Script:ModelsPath, $Script:BasePath)
 $Script:HistoryFile   = Join-Path $Script:ProfilePath "history.json"
 $Script:ServerPidFile = Join-Path $Script:ProfilePath "server.pid"
 
