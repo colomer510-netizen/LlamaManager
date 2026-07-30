@@ -1553,12 +1553,12 @@ function Invoke-SimpleWizard {
 
     # Recomendacion para principiantes: anadir parametros por defecto utiles de forma invisible
     if ($ToolName -eq "llama-cli" -or $ToolName -eq "llama") {
-        $allArgs.Add("-c")
-        $allArgs.Add("2048")
-        $allArgs.Add("-cnv") # Inicia modo conversacion (chat) que es mas intuitivo
+        [void]$allArgs.Add("-c")
+        [void]$allArgs.Add("2048")
+        [void]$allArgs.Add("-cnv") # Inicia modo conversacion (chat) que es mas intuitivo
     } elseif ($ToolName -eq "llama-server") {
-        $allArgs.Add("-c")
-        $allArgs.Add("2048")
+        [void]$allArgs.Add("-c")
+        [void]$allArgs.Add("2048")
     }
 
     $fullCmd = "& `"$ExePath`" $($allArgs -join ' ')"
