@@ -21,6 +21,7 @@ Elimina por completo la necesidad de escribir y memorizar comandos complejos, pe
 - ⚙️ **Auto-Offload Inteligente de GPU:** El sistema detecta automáticamente tu tarjeta gráfica (NVIDIA, AMD o Intel) y te recomienda usar `999` capas si detecta VRAM suficiente para procesar el modelo entero en tu GPU, acelerando todo al máximo.
 - 📦 **NUEVO - Cuantizador por Lotes:** Puedes reducir el peso (cuantizar) modelos individuales, o apuntar a una carpeta entera y dejar que el Manager comprima todos tus archivos uno por uno de forma automática.
 - 🌐 **Instalador Mágico y Auto-Updater:** Si te faltan los archivos de `llama.cpp`, el sistema se conecta a GitHub, descarga la última versión oficial para Windows y se autoconfigura en segundos. También cuenta con un actualizador manual con un solo clic y descargas directas de HuggingFace con barra de progreso.
+- 🛡️ **Seguridad Grado Empresarial (v4.0.0):** Protección robusta contra inyección de comandos mediante el manejo nativo de arrays en PowerShell, asegurando que los nombres de archivos maliciosos no puedan ejecutar comandos arbitrarios en tu sistema.
 
 ---
 
@@ -40,8 +41,10 @@ LlamaManager/
  ├── bin/                    <-- El Auto-Updater instalará llama.cpp aquí
  ├── models/                 <-- Descarga tus modelos .gguf de HuggingFace aquí
  ├── profiles/               <-- (Generado automáticamente por el script)
+ ├── src/                    <-- Código fuente
+ │    └── LlamaManager.ps1   <-- Código fuente original en PowerShell
+ ├── assets/                 <-- Recursos gráficos e íconos
  ├── LlamaManager.exe        <-- ✨ Lanzador Principal (¡Doble clic aquí!)
- ├── LlamaManager.ps1        <-- Código fuente original en PowerShell
  └── README.md
 ```
 
