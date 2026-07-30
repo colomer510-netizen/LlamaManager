@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     LlamaManager - Administrador interactivo para herramientas de llama.cpp
@@ -15,11 +16,14 @@
 #                    CONFIGURACION GLOBAL
 # ================================================================
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Continue'
+
 # Ruta base: la carpeta donde vive este script (junto a bin/)
 $Script:BasePath      = Split-Path $PSScriptRoot -Parent
 $Script:BinPath       = Join-Path $Script:BasePath "bin"
 $Script:ProfilePath   = Join-Path $Script:BasePath "profiles"
-$Script:Version       = "3.0.0"
+$Script:Version       = "4.0.0"
 
 $Script:ModelsPath    = Join-Path $Script:BasePath "models"
 $Script:HistoryFile   = Join-Path $Script:ProfilePath "history.json"
@@ -781,10 +785,9 @@ function Start-ServerBackground {
     param([string]$ExePath, [string[]]$Arguments)
     Initialize-ProfileDir
     
-    $argString = $Arguments -join " "
     Write-Color "  [~] Iniciando servidor en segundo plano..." "Cyan"
     
-    $proc = Start-Process -FilePath $ExePath -ArgumentList $argString -WindowStyle Hidden -PassThru
+    $proc = Start-Process -FilePath $ExePath -ArgumentList $Arguments -WindowStyle Hidden -PassThru
     
     if ($proc) {
         $proc.Id | Out-File -FilePath $Script:ServerPidFile -Encoding UTF8
@@ -929,7 +932,7 @@ function Invoke-DocumentAnalyzer {
     
     $cliExe = Join-Path $Script:BinPath "llama-cli.exe"
     
-    $allArgs = @("-m", "`"$modelPath`"", "-c", "$ctx", "--file", "`"$docPath`"", "-p", "`"$promptMsg`"", "-n", "-1")
+    $allArgs = @("-m", $modelPath, "-c", "$ctx", "--file", $docPath, "-p", $promptMsg, "-n", "-1")
     
     Write-Color "  Preparando para analizar..." "Yellow"
     Invoke-LlamaCommand -ExePath $cliExe -Arguments $allArgs
@@ -1072,7 +1075,7 @@ function Format-ArgsArray {
 
     $argsArr = @()
 
-    if ($Params.ContainsKey("model"))      { $argsArr += "-m";   $argsArr += ('"' + $Params['model'] + '"') }
+    if ($Params.ContainsKey("model"))      { $argsArr += "-m";   $argsArr += $Params['model'] }
     if ($Params.ContainsKey("context"))    { $argsArr += "-c";   $argsArr += "$($Params['context'])" }
     if ($Params.ContainsKey("threads"))    { $argsArr += "-t";   $argsArr += "$($Params['threads'])" }
     if ($Params.ContainsKey("gpu_layers")) { $argsArr += "-ngl"; $argsArr += "$($Params['gpu_layers'])" }
@@ -1131,7 +1134,7 @@ function Invoke-CliWizard {
     $sysPrompt = Prompt-SystemPromptLibrary
     if ($sysPrompt) {
         $allArgs.Add("--system-prompt") | Out-Null
-        $allArgs.Add(('"' + $sysPrompt + '"')) | Out-Null
+        $allArgs.Add($sysPrompt) | Out-Null
     }
 
     # Seed
@@ -1220,12 +1223,12 @@ function Invoke-ServerWizard {
     if ($sysPrompt) {
         Write-Color "  [!] Nota: El servidor recibe system prompts principalmente via API request, pero lo configuraremos." "Yellow"
         $allArgs.Add("--system-prompt") | Out-Null
-        $allArgs.Add(('"' + $sysPrompt + '"')) | Out-Null
+        $allArgs.Add($sysPrompt) | Out-Null
     }
     $sysFile = ""
     if ($sysFile -and (Test-Path $sysFile)) {
         $allArgs.Add("--system-prompt-file") | Out-Null
-        $allArgs.Add(('"' + $sysFile + '"')) | Out-Null
+        $allArgs.Add($sysFile) | Out-Null
     } elseif ($sysFile) {
         Write-Color "  [!] Archivo no encontrado, se omitira." "Yellow"
     }
@@ -1310,7 +1313,7 @@ function Invoke-QuantizeWizard {
             $imatrixPath = Read-ValidInput -Prompt "Ruta al archivo de imatrix" -ValidationType "path" -Required
             if ($imatrixPath) {
                 $allArgs.Add("--imatrix") | Out-Null
-                $allArgs.Add(('"' + $imatrixPath + '"')) | Out-Null
+                $allArgs.Add($imatrixPath) | Out-Null
             }
         }
 
@@ -1318,8 +1321,8 @@ function Invoke-QuantizeWizard {
         $threads = Read-ValidInput -Prompt "Hilos de CPU (-t)" -Default "$Script:DefaultThreads" -ValidationType "int" -Min 1 -Max 256
 
         # Construir argumentos
-        $allArgs.Add(('"' + $inputModel + '"')) | Out-Null
-        $allArgs.Add(('"' + $outputModel + '"')) | Out-Null
+        $allArgs.Add($inputModel) | Out-Null
+        $allArgs.Add($outputModel) | Out-Null
         $allArgs.Add($quantType) | Out-Null
         $allArgs.Add("-t") | Out-Null
         $allArgs.Add("$threads") | Out-Null
@@ -1369,8 +1372,8 @@ function Invoke-QuantizeWizard {
             Write-Host ""
             Write-Color "  Procesando: $($m.Name)" "Cyan"
             $argsArray = @(
-                "`"$($m.FullName)`"",
-                "`"$outFile`"",
+                $m.FullName,
+                $outFile,
                 "$quantType",
                 "-t",
                 "$threads"
@@ -1410,7 +1413,7 @@ function Invoke-BenchWizard {
 
     $allArgs = [System.Collections.ArrayList]@()
     $allArgs.Add("-m") | Out-Null
-    $allArgs.Add(('"' + $modelPath + '"')) | Out-Null
+    $allArgs.Add($modelPath) | Out-Null
 
     # Hilos
     $threads = Read-ValidInput -Prompt "Hilos de CPU (-t)" -Default "$Script:DefaultThreads" -ValidationType "int" -Min 1 -Max 256
@@ -1472,11 +1475,11 @@ function Invoke-MultimodalWizard {
 
     $imagePath = Read-ValidInput -Prompt "Ruta a la imagen (.jpg, .png)" -ValidationType "path" -Required
     $allArgs.Add("--image") | Out-Null
-    $allArgs.Add(('"' + $imagePath + '"')) | Out-Null
+    $allArgs.Add($imagePath) | Out-Null
 
     $promptStr = Read-ValidInput -Prompt "Pregunta sobre la imagen" -Default "Describe esta imagen en detalle." -Required
     $allArgs.Add("-p") | Out-Null
-    $allArgs.Add(('"' + $promptStr + '"')) | Out-Null
+    $allArgs.Add($promptStr) | Out-Null
     
     # Proyector multimodal (mmproj) si lo requiere llava
     $needsMmproj = Show-Confirm -Message "Este modelo requiere un archivo mmproj (.gguf multimodal projector)?" -Default $false
@@ -1485,7 +1488,7 @@ function Invoke-MultimodalWizard {
         $mmproj = Browse-ForModel
         if ($mmproj) {
             $allArgs.Add("--mmproj") | Out-Null
-            $allArgs.Add(('"' + $mmproj + '"')) | Out-Null
+            $allArgs.Add($mmproj) | Out-Null
         }
     }
 
@@ -1512,11 +1515,11 @@ function Invoke-TtsWizard {
 
     $text = Read-ValidInput -Prompt "Texto a narrar" -Required
     $allArgs.Add("-p") | Out-Null
-    $allArgs.Add(('"' + $text + '"')) | Out-Null
+    $allArgs.Add($text) | Out-Null
 
     $outFile = Read-ValidInput -Prompt "Ruta de salida del audio (.wav)" -Default "salida.wav"
     $allArgs.Add("-o") | Out-Null
-    $allArgs.Add(('"' + $outFile + '"')) | Out-Null
+    $allArgs.Add($outFile) | Out-Null
 
     return @{
         Executable = $ExePath
@@ -1544,8 +1547,8 @@ function Invoke-SimpleWizard {
     }
 
     $allArgs = [System.Collections.ArrayList]@()
-    $allArgs.Add("-m")
-    $allArgs.Add("`"$modelPath`"")
+    $allArgs.Add("-m") | Out-Null
+    $allArgs.Add($modelPath) | Out-Null
 
     # Recomendacion para principiantes: anadir parametros por defecto utiles de forma invisible
     if ($ToolName -eq "llama-cli" -or $ToolName -eq "llama") {
@@ -1589,7 +1592,7 @@ function Invoke-GenericWizard {
         $modelPath = Browse-ForModel
         if ($modelPath) {
             $allArgs.Add("-m") | Out-Null
-            $allArgs.Add(('"' + $modelPath + '"')) | Out-Null
+            $allArgs.Add($modelPath) | Out-Null
         }
     }
 
@@ -1924,13 +1927,11 @@ function Invoke-LlamaCommand {
     Write-Host ""
 
     try {
-        # Construir la linea de argumentos como un solo string
-        $argString = $Arguments -join " "
-
-        # Usar Start-Process con -NoNewWindow para streaming interactivo
-        # Esto permite que llama-cli capture input del teclado en modo conversacion
+        # Pasar los argumentos como array seguro directamente a Start-Process.
+        # Esto evita vulnerabilidades de inyeccion de comandos que ocurren
+        # al concatenar argumentos como un solo string de texto.
         $process = Start-Process -FilePath $ExePath `
-                                 -ArgumentList $argString `
+                                 -ArgumentList $Arguments `
                                  -NoNewWindow `
                                  -Wait `
                                  -PassThru
@@ -2009,7 +2010,7 @@ function Test-Prerequisites {
 
     if ($missingBin) {
         Write-Color "  [!] No se encontraron ejecutables de llama.cpp en bin/" "Yellow"
-        $dl = Show-Confirm -Message "¿Deseas descargar e instalar automáticamente la última versión desde GitHub?" -Default $true
+        $dl = Show-Confirm -Message "Â¿Deseas descargar e instalar automÃ¡ticamente la Ãºltima versiÃ³n desde GitHub?" -Default $true
         if ($dl) {
             Invoke-AutoUpdater
             # Vuelve a revisar
@@ -2305,7 +2306,7 @@ function Start-MainLoop {
                     $models = Find-GgufModels -Recursive
 
                     if ($models.Count -eq 0) {
-                        Write-Color "  No se encontraron modelos .gguf en las rutas de búsqueda." "Yellow"
+                        Write-Color "  No se encontraron modelos .gguf en las rutas de bÃºsqueda." "Yellow"
                         Write-Host "  Presiona cualquier tecla para volver..." -ForegroundColor "DarkGray"
                         [Console]::ReadKey($true) | Out-Null
                         break
@@ -2326,7 +2327,7 @@ function Start-MainLoop {
                     $chosen = $models[$sel]
                     $act = Show-Menu -Title "Gestionar: $($chosen.Name)" -Options @("Eliminar modelo (Liberar espacio)", "Ver Metadata", "Copiar ruta") -ShowBack
                     if ($act -eq 0) {
-                        $del = Show-Confirm -Message "¿Estás SEGURO de que deseas ELIMINAR $($chosen.Name)? Esto no se puede deshacer." -Default $false
+                        $del = Show-Confirm -Message "Â¿EstÃ¡s SEGURO de que deseas ELIMINAR $($chosen.Name)? Esto no se puede deshacer." -Default $false
                         if ($del) {
                             Remove-Item -Path $chosen.Path -Force
                             Write-Color "  [OK] Modelo eliminado." "Green"
