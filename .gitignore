@@ -1,0 +1,18 @@
+# Archivos ignorados por defecto
+
+# Binarios y librerías de llama.cpp (se descargan aparte)
+bin/*.exe
+bin/*.dll
+bin/*.so
+bin/*.dylib
+
+# Modelos pesados
+models/*.gguf
+models/*.bin
+
+# Perfiles locales y cache
+profiles/
+
+# Archivos temporales de Windows o PowerShell
+*.tmp
+*.log
