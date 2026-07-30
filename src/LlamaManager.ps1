@@ -16,7 +16,7 @@
 #                    CONFIGURACION GLOBAL
 # ================================================================
 
-Set-StrictMode -Version Latest
+# Set-StrictMode -Version Latest (Comentado temporalmente por compatibilidad)
 $ErrorActionPreference = 'Continue'
 
 # Ruta base: la carpeta donde vive este script (junto a bin/)
