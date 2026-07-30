@@ -25,11 +25,19 @@ $Script:ModelsPath    = Join-Path $Script:BasePath "models"
 $Script:HistoryFile   = Join-Path $Script:ProfilePath "history.json"
 $Script:ServerPidFile = Join-Path $Script:ProfilePath "server.pid"
 
-# Detectar GPU
+# Detectar GPU y VRAM
 $Script:HasDedicatedGpu = $false
+$Script:GpuVramGB = 0
+$Script:GpuName = ""
 try {
-    $gpu = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "NVIDIA|AMD|Radeon" }
-    if ($gpu) { $Script:HasDedicatedGpu = $true }
+    $gpu = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "NVIDIA|AMD|Radeon" } | Select-Object -First 1
+    if ($gpu) { 
+        $Script:HasDedicatedGpu = $true 
+        $Script:GpuName = $gpu.Name
+        if ($gpu.AdapterRAM) {
+            $Script:GpuVramGB = [Math]::Round($gpu.AdapterRAM / 1GB, 1)
+        }
+    }
 } catch {}
 
 # Biblioteca de System Prompts
@@ -952,10 +960,19 @@ function Invoke-HfDownloader {
     Write-Color "  Por favor espera, esto puede tardar dependiendo de tu conexion..." "Cyan"
     
     try {
-        Invoke-WebRequest -Uri $url -OutFile $outPath -UseBasicParsing
+        Import-Module BitsTransfer -ErrorAction SilentlyContinue
+        Write-Host "  (Iniciando BitsTransfer, puedes ver el progreso abajo...)" -ForegroundColor "DarkGray"
+        Start-BitsTransfer -Source $url -Destination $outPath -Description "Descargando modelo GGUF"
         Write-Color "  [OK] Descarga completada con exito!" "Green"
     } catch {
-        Write-Color "  [X] Error durante la descarga: $($_.Exception.Message)" "Red"
+        Write-Color "  [X] Error durante la descarga con BitsTransfer." "Red"
+        Write-Color "  Intentando fallback con Invoke-WebRequest (sin barra de progreso)..." "Yellow"
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $outPath -UseBasicParsing
+            Write-Color "  [OK] Descarga completada con exito (Fallback)!" "Green"
+        } catch {
+            Write-Color "  [X] Error en fallback: $($_.Exception.Message)" "Red"
+        }
     }
     
     Write-Host "  Presiona cualquier tecla..." -ForegroundColor "DarkGray"
@@ -1032,8 +1049,14 @@ function Build-CommonParams {
     if ($threads) { $params["threads"] = $threads }
 
     # 4. GPU Layers
-    $defGpu = if ($Script:HasDedicatedGpu) { "99" } else { "0" }
-    if ($Script:HasDedicatedGpu) { Write-Color "  [+] GPU Detectada: Se recomienda 99 para descargar todo a VRAM." "Green" }
+    $defGpu = if ($Script:HasDedicatedGpu) { "999" } else { "0" }
+    if ($Script:HasDedicatedGpu) { 
+        Write-Color "  [+] GPU Detectada: $($Script:GpuName)" "Cyan"
+        if ($Script:GpuVramGB -gt 0) {
+            Write-Color "      VRAM Estimada: $($Script:GpuVramGB) GB" "Cyan"
+        }
+        Write-Color "      Se recomienda 999 para descargar todo a VRAM (Auto-Offload)." "Green" 
+    }
     $ngl = Read-ValidInput -Prompt "Capas GPU (-ngl, 0=solo CPU)" -Default $defGpu -ValidationType "int" -Min 0 -Max 999
     if ($ngl -and $ngl -gt 0) { $params["gpu_layers"] = $ngl }
 
@@ -1232,7 +1255,7 @@ function Invoke-ServerWizard {
 function Invoke-QuantizeWizard {
     <#
     .SYNOPSIS
-        Wizard guiado para llama-quantize.exe - cuantizacion de modelos.
+        Wizard guiado para llama-quantize.exe - cuantizacion de modelos (individual o por lotes).
     #>
     param([string]$ExePath)
 
@@ -1240,72 +1263,133 @@ function Invoke-QuantizeWizard {
     Show-Separator "WIZARD: llama-quantize" "Magenta"
     Write-Color "  Cuantizacion de modelos GGUF a formatos mas pequenos" "DarkGray"
 
-    # 1. Modelo de entrada
-    Write-Host ""
-    Write-Color "  -- Paso 1: Modelo de entrada --" "Cyan"
-    $inputModel = Browse-ForModel
-    if (-not $inputModel) { return $null }
+    $mode = Show-Menu -Title "Modo de cuantizacion" -Options @("Individual (Un solo modelo)", "Lotes (Carpeta completa)") -ShowBack
+    if ($mode -eq -1) { return $null }
 
-    # 2. Tipo de cuantizacion
-    Write-Host ""
-    Write-Color "  -- Paso 2: Tipo de cuantizacion --" "Cyan"
-    $quantNames = $Script:QuantTypes | ForEach-Object { $_.Name }
-    $quantDescs = $Script:QuantTypes | ForEach-Object { $_.Desc }
+    if ($mode -eq 0) {
+        # 1. Modelo de entrada individual
+        Write-Host ""
+        Write-Color "  -- Paso 1: Modelo de entrada --" "Cyan"
+        $inputModel = Browse-ForModel
+        if (-not $inputModel) { return $null }
 
-    $quantIdx = Show-Menu -Title "Selecciona el tipo de cuantizacion" -Options $quantNames -Descriptions $quantDescs -ShowBack
-    if ($quantIdx -eq -1) { return $null }
-    $quantType = $Script:QuantTypes[$quantIdx].Name
+        # 2. Tipo de cuantizacion
+        Write-Host ""
+        Write-Color "  -- Paso 2: Tipo de cuantizacion --" "Cyan"
+        $quantNames = $Script:QuantTypes | ForEach-Object { $_.Name }
+        $quantDescs = $Script:QuantTypes | ForEach-Object { $_.Desc }
 
-    Write-ColorLine @(
-        @{ Text = "  [OK] Tipo: "; Color = "Green" },
-        @{ Text = $quantType; Color = "White" }
-    )
+        $quantIdx = Show-Menu -Title "Selecciona el tipo de cuantizacion" -Options $quantNames -Descriptions $quantDescs -ShowBack
+        if ($quantIdx -eq -1) { return $null }
+        $quantType = $Script:QuantTypes[$quantIdx].Name
 
-    # 3. Ruta de salida
-    Write-Host ""
-    Write-Color "  -- Paso 3: Archivo de salida --" "Cyan"
-    $inputFileName = [System.IO.Path]::GetFileNameWithoutExtension($inputModel)
-    $inputDir      = [System.IO.Path]::GetDirectoryName($inputModel)
-    $defaultOutput = Join-Path $inputDir "${inputFileName}-${quantType}.gguf"
+        Write-ColorLine @(
+            @{ Text = "  [OK] Tipo: "; Color = "Green" },
+            @{ Text = $quantType; Color = "White" }
+        )
 
-    $outputModel = Read-ValidInput -Prompt "Ruta de salida" -Default $defaultOutput
-    if (-not $outputModel) { $outputModel = $defaultOutput }
+        # 3. Ruta de salida
+        Write-Host ""
+        Write-Color "  -- Paso 3: Archivo de salida --" "Cyan"
+        $inputFileName = [System.IO.Path]::GetFileNameWithoutExtension($inputModel)
+        $inputDir      = [System.IO.Path]::GetDirectoryName($inputModel)
+        $defaultOutput = Join-Path $inputDir "${inputFileName}-${quantType}.gguf"
 
-    # 4. Opciones adicionales
-    Write-Host ""
-    Write-Color "  -- Paso 4: Opciones adicionales --" "Cyan"
+        $outputModel = Read-ValidInput -Prompt "Ruta de salida" -Default $defaultOutput
+        if (-not $outputModel) { $outputModel = $defaultOutput }
 
-    $allArgs = [System.Collections.ArrayList]@()
+        # 4. Opciones adicionales
+        Write-Host ""
+        Write-Color "  -- Paso 4: Opciones adicionales --" "Cyan"
 
-    # Importance matrix (opcional)
-    $useImatrix = Show-Confirm -Message "Usar matriz de importancia? (mejora calidad en quants bajos)" -Default $false
-    if ($useImatrix) {
-        $imatrixPath = Read-ValidInput -Prompt "Ruta al archivo de imatrix" -ValidationType "path" -Required
-        if ($imatrixPath) {
-            $allArgs.Add("--imatrix") | Out-Null
-            $allArgs.Add(('"' + $imatrixPath + '"')) | Out-Null
+        $allArgs = [System.Collections.ArrayList]@()
+
+        # Importance matrix
+        $useImatrix = Show-Confirm -Message "Usar matriz de importancia? (mejora calidad en quants bajos)" -Default $false
+        if ($useImatrix) {
+            $imatrixPath = Read-ValidInput -Prompt "Ruta al archivo de imatrix" -ValidationType "path" -Required
+            if ($imatrixPath) {
+                $allArgs.Add("--imatrix") | Out-Null
+                $allArgs.Add(('"' + $imatrixPath + '"')) | Out-Null
+            }
         }
-    }
 
-    # Hilos
-    $threads = Read-ValidInput -Prompt "Hilos de CPU (-t)" -Default "$Script:DefaultThreads" -ValidationType "int" -Min 1 -Max 256
+        # Hilos
+        $threads = Read-ValidInput -Prompt "Hilos de CPU (-t)" -Default "$Script:DefaultThreads" -ValidationType "int" -Min 1 -Max 256
 
-    # Construir argumentos: llama-quantize [opciones] modelo_entrada modelo_salida tipo
-    $allArgs.Add(('"' + $inputModel + '"')) | Out-Null
-    $allArgs.Add(('"' + $outputModel + '"')) | Out-Null
-    $allArgs.Add($quantType) | Out-Null
-    $allArgs.Add("-t") | Out-Null
-    $allArgs.Add("$threads") | Out-Null
+        # Construir argumentos
+        $allArgs.Add(('"' + $inputModel + '"')) | Out-Null
+        $allArgs.Add(('"' + $outputModel + '"')) | Out-Null
+        $allArgs.Add($quantType) | Out-Null
+        $allArgs.Add("-t") | Out-Null
+        $allArgs.Add("$threads") | Out-Null
 
-    return @{
-        Executable = $ExePath
-        Arguments  = $allArgs.ToArray()
-        ToolName   = "llama-quantize"
-        Config     = @{
-            input  = $inputModel
-            output = $outputModel
-            type   = $quantType
+        return @{
+            Executable = $ExePath
+            Arguments  = $allArgs.ToArray()
+            ToolName   = "llama-quantize"
+            Config     = @{
+                input  = $inputModel
+                output = $outputModel
+                type   = $quantType
+            }
         }
+    } else {
+        # MODO POR LOTES (BATCH)
+        Write-Host ""
+        Write-Color "  -- Paso 1: Carpeta de entrada --" "Cyan"
+        $inputDir = Read-ValidInput -Prompt "Ruta a la carpeta con modelos .gguf" -ValidationType "path" -Required
+        if (-not $inputDir -or -not (Test-Path $inputDir)) { return $null }
+
+        $models = Get-ChildItem -Path $inputDir -Filter "*.gguf" -File
+        if ($models.Count -eq 0) {
+            Write-Color "  [X] No se encontraron modelos .gguf en esa carpeta." "Red"
+            Start-Sleep -Seconds 2
+            return $null
+        }
+        Write-Color "  [OK] $($models.Count) modelos encontrados." "Green"
+
+        Write-Host ""
+        Write-Color "  -- Paso 2: Tipo de cuantizacion --" "Cyan"
+        $quantNames = $Script:QuantTypes | ForEach-Object { $_.Name }
+        $quantDescs = $Script:QuantTypes | ForEach-Object { $_.Desc }
+
+        $quantIdx = Show-Menu -Title "Selecciona el tipo de cuantizacion para TODOS los modelos" -Options $quantNames -Descriptions $quantDescs -ShowBack
+        if ($quantIdx -eq -1) { return $null }
+        $quantType = $Script:QuantTypes[$quantIdx].Name
+
+        Write-Host ""
+        Write-Color "  -- Paso 3: Opciones adicionales --" "Cyan"
+        $threads = Read-ValidInput -Prompt "Hilos de CPU (-t)" -Default "$Script:DefaultThreads" -ValidationType "int" -Min 1 -Max 256
+
+        Write-Host ""
+        Write-Color "  Iniciando cuantizacion por lotes..." "Magenta"
+        foreach ($m in $models) {
+            $outFile = Join-Path $inputDir "$($m.BaseName)-${quantType}.gguf"
+            Write-Host ""
+            Write-Color "  Procesando: $($m.Name)" "Cyan"
+            $argsArray = @(
+                "`"$($m.FullName)`"",
+                "`"$outFile`"",
+                "$quantType",
+                "-t",
+                "$threads"
+            )
+            $cmdText = '"' + $ExePath + '" ' + ($argsArray -join ' ')
+            Write-Color "  Ejecutando: $cmdText" "DarkGray"
+            $proc = Start-Process -FilePath $ExePath -ArgumentList $argsArray -Wait -NoNewWindow -PassThru
+            if ($proc.ExitCode -ne 0) {
+                Write-Color "  [!] Advertencia: llama-quantize devolvio codigo $($proc.ExitCode) para $($m.Name)" "Yellow"
+            }
+        }
+
+        Write-Host ""
+        Write-Color "  [OK] Cuantizacion por lotes finalizada." "Green"
+        Write-Host "  Presiona cualquier tecla para volver al menu..." -ForegroundColor "DarkGray"
+        [Console]::ReadKey($true) | Out-Null
+        
+        # Devolvemos $null para que no intente ejecutar de nuevo
+        return $null
     }
 }
 
@@ -1913,21 +1997,42 @@ function Test-Prerequisites {
     $warnings = @()
 
     # 1. Verificar carpeta bin
+    $missingBin = $false
     if (-not (Test-Path $Script:BinPath)) {
-        $errors += "No se encontro la carpeta bin/ en: $Script:BinPath"
+        $missingBin = $true
     } else {
         $exeCount = (Get-ChildItem -Path $Script:BinPath -Filter "*.exe" -File).Count
         if ($exeCount -eq 0) {
-            $errors += "La carpeta bin/ existe pero no contiene ejecutables .exe"
+            $missingBin = $true
+        }
+    }
+
+    if ($missingBin) {
+        Write-Color "  [!] No se encontraron ejecutables de llama.cpp en bin/" "Yellow"
+        $dl = Show-Confirm -Message "¿Deseas descargar e instalar automáticamente la última versión desde GitHub?" -Default $true
+        if ($dl) {
+            Invoke-AutoUpdater
+            # Vuelve a revisar
+            if (Test-Path $Script:BinPath) {
+                if ((Get-ChildItem -Path $Script:BinPath -Filter "*.exe" -File).Count -gt 0) {
+                    $missingBin = $false
+                }
+            }
+        }
+        
+        if ($missingBin) {
+            $errors += "La carpeta bin/ no contiene ejecutables .exe y no se instalaron."
         }
     }
 
     # 2. Verificar DLLs criticos
-    $criticalDlls = @("ggml-base.dll", "ggml.dll", "llama.dll", "llama-common.dll")
-    foreach ($dll in $criticalDlls) {
-        $dllPath = Join-Path $Script:BinPath $dll
-        if (-not (Test-Path $dllPath)) {
-            $warnings += "DLL faltante: $dll (algunas herramientas podrian fallar)"
+    if (-not $missingBin) {
+        $criticalDlls = @("ggml-base.dll", "ggml.dll", "llama.dll", "llama-common.dll")
+        foreach ($dll in $criticalDlls) {
+            $dllPath = Join-Path $Script:BinPath $dll
+            if (-not (Test-Path $dllPath)) {
+                $warnings += "DLL faltante: $dll (algunas herramientas podrian fallar)"
+            }
         }
     }
 
@@ -2188,77 +2293,86 @@ function Start-MainLoop {
                     Show-PostWizardMenu -CommandInfo $commandInfo
                 }
             }
-            1 {
+            2 {
                 # --- Perfiles ---
                 Show-ProfileManager
             }
-            2 {
-                # --- Buscar modelos ---
-                Write-Host ""
-                Show-Separator "Modelos .gguf encontrados" "Cyan"
-                $models = Find-GgufModels -Recursive
-
-                if ($models.Count -gt 0) {
+            3 {
+                # --- Gestor de Modelos Avanzado ---
+                while ($true) {
                     Write-Host ""
+                    Show-Separator "Gestor de Modelos .gguf" "Cyan"
+                    $models = Find-GgufModels -Recursive
+
+                    if ($models.Count -eq 0) {
+                        Write-Color "  No se encontraron modelos .gguf en las rutas de búsqueda." "Yellow"
+                        Write-Host "  Presiona cualquier tecla para volver..." -ForegroundColor "DarkGray"
+                        [Console]::ReadKey($true) | Out-Null
+                        break
+                    }
+
+                    $optNames = @()
+                    $optDescs = @()
                     foreach ($m in $models) {
                         $sizeLabel = "$($m.SizeMB) MB"
                         if ($m.SizeGB -ge 1) { $sizeLabel = "$($m.SizeGB) GB" }
-                        Write-ColorLine @(
-                            @{ Text = "  * "; Color = "Green" },
-                            @{ Text = $m.Name; Color = "White" },
-                            @{ Text = " ($sizeLabel)"; Color = "DarkGray" }
-                        )
-                        Write-Color "    $($m.Dir)" "DarkGray"
+                        $optNames += $m.Name
+                        $optDescs += "$sizeLabel -- $($m.Dir)"
                     }
-                    Write-Host ""
-                    $totalModels = $models.Count
-                    Write-Color "  Total: $totalModels modelo(s) encontrado(s)" "Cyan"
-                } else {
-                    Write-Color "  No se encontraron modelos .gguf." "Yellow"
-                    Write-Color "  Rutas de busqueda:" "DarkGray"
-                    foreach ($p in $Script:ModelSearchPaths) {
-                        $existsMark = "[X]"
-                        if (Test-Path $p) { $existsMark = "[OK]" }
-                        Write-Color "    $existsMark $p" "DarkGray"
+                    
+                    $sel = Show-Menu -Title "Selecciona un modelo para gestionarlo" -Options $optNames -Descriptions $optDescs -ShowBack
+                    if ($sel -eq -1) { break }
+
+                    $chosen = $models[$sel]
+                    $act = Show-Menu -Title "Gestionar: $($chosen.Name)" -Options @("Eliminar modelo (Liberar espacio)", "Ver Metadata", "Copiar ruta") -ShowBack
+                    if ($act -eq 0) {
+                        $del = Show-Confirm -Message "¿Estás SEGURO de que deseas ELIMINAR $($chosen.Name)? Esto no se puede deshacer." -Default $false
+                        if ($del) {
+                            Remove-Item -Path $chosen.Path -Force
+                            Write-Color "  [OK] Modelo eliminado." "Green"
+                            Start-Sleep -Seconds 1
+                        }
+                    } elseif ($act -eq 1) {
+                        Show-GgufMetadata -ModelPath $chosen.Path
+                    } elseif ($act -eq 2) {
+                        Set-Clipboard -Value $chosen.Path
+                        Write-Color "  [OK] Ruta copiada al portapapeles." "Green"
+                        Start-Sleep -Seconds 1
                     }
                 }
-
-                Write-Host ""
-                Write-Host "  Presiona cualquier tecla para volver..." -ForegroundColor "DarkGray"
-                [Console]::ReadKey($true) | Out-Null
             }
-            3 {
+            4 {
                 # --- Historial ---
                 Show-History
             }
-            4 {
+            5 {
                 # --- Chat rapido ---
                 Invoke-QuickChat
             }
-            5 {
+            6 {
                 # --- Monitor Servidor ---
                 Show-ServerMonitor
             }
-            6 {
+            7 {
                 # --- Document Analyzer ---
                 Invoke-DocumentAnalyzer
             }
-            7 {
+            8 {
                 # --- HF Downloader ---
                 Invoke-HfDownloader
             }
-            8 {
+            9 {
                 # --- Metadata Reader ---
                 $modelPath = Browse-ForModel
                 if ($modelPath) {
                     Show-GgufMetadata -ModelPath $modelPath
                 }
             }
-            9 {
+            10 {
                 # --- Auto Updater ---
                 Invoke-AutoUpdater
             }
-            10 {
+            11 {
                 # --- Info del sistema ---
                 Write-Host ""
                 Show-Separator "Informacion del Sistema" "Cyan"
@@ -2349,7 +2463,7 @@ function Start-MainLoop {
                 Write-Host "  Presiona cualquier tecla para volver..." -ForegroundColor "DarkGray"
                 [Console]::ReadKey($true) | Out-Null
             }
-            11 {
+            12 {
                 # --- Salir ---
                 Write-Host ""
                 Write-Color "  Hasta luego!" "Cyan"
