@@ -302,6 +302,7 @@ function Show-Menu {
         if ($totalMenuLines -eq 0) {
             $totalMenuLines = $linesDrawn
             $startLine      = [Console]::CursorTop - $totalMenuLines
+            if ($startLine -lt 0) { $startLine = 0 }
         }
 
         # Leer tecla (sin eco)
@@ -403,14 +404,15 @@ function Read-ValidInput {
                 return $parsed
             }
             "path" {
-                if (-not (Test-Path $value)) {
+                $valForTest = $value.Trim('"', "'")
+                if (-not (Test-Path $valForTest)) {
                     Write-Color "  [X] La ruta no existe: $value" "Red"
                     Write-Color "  Deseas intentar de nuevo? (S/n)" "Yellow"
                     $retry = Read-Host
                     if ($retry -eq 'n' -or $retry -eq 'N') { return $null }
                     continue
                 }
-                return $value
+                return $valForTest
             }
             default {
                 return $value
@@ -617,7 +619,7 @@ function Browse-ForModel {
 # ================================================================
 
 function Prompt-SystemPromptLibrary {
-    $choice = Show-Menu -Title "Seleccionar System Prompt" -Options @("Escribir Manualmente", "Omitir (Sin System Prompt)", "------------------") + ($Script:PromptLibrary | ForEach-Object { $_.Name }) -Descriptions @("Escribir tu propio texto", "No anadir argumento", "") + ($Script:PromptLibrary | ForEach-Object { $_.Desc })
+    $choice = Show-Menu -Title "Seleccionar System Prompt" -Options (@("Escribir Manualmente", "Omitir (Sin System Prompt)", "------------------") + ($Script:PromptLibrary | ForEach-Object { $_.Name })) -Descriptions (@("Escribir tu propio texto", "No anadir argumento", "") + ($Script:PromptLibrary | ForEach-Object { $_.Desc }))
     
     if ($choice -eq 0) { return Read-ValidInput -Prompt "Escribe tu System Prompt" }
     if ($choice -eq 1 -or $choice -eq 2) { return $null }
@@ -934,9 +936,13 @@ function Invoke-DocumentAnalyzer {
     $cliExe = Join-Path $Script:BinPath "llama-cli.exe"
     
     $allArgs = @("-m", $modelPath, "-c", "$ctx", "--file", $docPath, "-p", $promptMsg, "-n", "-1")
+    $safeArgs = @()
+    foreach ($a in $allArgs) {
+        if ($a -match '\s' -and $a -notmatch '^".*"$') { $safeArgs += "`"$a`"" } else { $safeArgs += $a }
+    }
     
     Write-Color "  Preparando para analizar..." "Yellow"
-    Invoke-LlamaCommand -ExePath $cliExe -Arguments $allArgs
+    Invoke-LlamaCommand -ExePath $cliExe -Arguments $safeArgs
 }
 
 function Invoke-HfDownloader {
@@ -1105,6 +1111,9 @@ function Invoke-CliWizard {
     if (-not $common) { return $null }
 
     $allArgs = [System.Collections.ArrayList]@()
+    if ($ExePath -match 'llama\.exe$') {
+        $allArgs.Add("cli") | Out-Null
+    }
     $allArgs.AddRange((Format-ArgsArray $common))
 
     # --- Parametros especificos de CLI ---
@@ -1379,9 +1388,13 @@ function Invoke-QuantizeWizard {
                 "-t",
                 "$threads"
             )
-            $cmdText = '"' + $ExePath + '" ' + ($argsArray -join ' ')
+            $safeArgs = @()
+            foreach ($a in $argsArray) {
+                if ($a -match '\s' -and $a -notmatch '^".*"$') { $safeArgs += "`"$a`"" } else { $safeArgs += $a }
+            }
+            $cmdText = '"' + $ExePath + '" ' + ($safeArgs -join ' ')
             Write-Color "  Ejecutando: $cmdText" "DarkGray"
-            $proc = Start-Process -FilePath $ExePath -ArgumentList $argsArray -Wait -NoNewWindow -PassThru
+            $proc = Start-Process -FilePath $ExePath -ArgumentList $safeArgs -Wait -NoNewWindow -PassThru
             if ($proc.ExitCode -ne 0) {
                 Write-Color "  [!] Advertencia: llama-quantize devolvio codigo $($proc.ExitCode) para $($m.Name)" "Yellow"
             }
@@ -1992,74 +2005,58 @@ function Test-Prerequisites {
     <#
     .SYNOPSIS
         Valida que el entorno este correctamente configurado antes de iniciar.
-        Retorna $true si todo esta bien, $false si hay errores criticos.
+    .DESCRIPTION
+        Verifica la existencia del directorio bin, los ejecutables de llama.cpp,
+        las librerias DLL dinamicas requeridas y el espacio en disco.
+    .OUTPUTS
+        [bool] $true si el sistema es estable, $false si hay errores criticos.
     #>
 
     $errors   = @()
     $warnings = @()
 
-    # 1. Verificar carpeta bin
-    $missingBin = $false
-    if (-not (Test-Path $Script:BinPath)) {
-        $missingBin = $true
-    } else {
-        $exeCount = (Get-ChildItem -Path $Script:BinPath -Filter "*.exe" -File).Count
-        if ($exeCount -eq 0) {
-            $missingBin = $true
-        }
-    }
-
-    if ($missingBin) {
+    # 1. Validar ejecutables (Rendimiento optimizado)
+    $hasExes = Test-Path "$Script:BinPath\*.exe"
+    
+    if (-not $hasExes) {
         Write-Color "  [!] No se encontraron ejecutables de llama.cpp en bin/" "Yellow"
-        $dl = Show-Confirm -Message "Â¿Deseas descargar e instalar automÃ¡ticamente la Ãºltima versiÃ³n desde GitHub?" -Default $true
-        if ($dl) {
+        $wantsDownload = Show-Confirm -Message "¿Deseas descargar e instalar automáticamente la última versión desde GitHub?" -Default $true
+        
+        if ($wantsDownload) {
             Invoke-AutoUpdater
-            # Vuelve a revisar
-            if (Test-Path $Script:BinPath) {
-                if ((Get-ChildItem -Path $Script:BinPath -Filter "*.exe" -File).Count -gt 0) {
-                    $missingBin = $false
-                }
-            }
+            $hasExes = Test-Path "$Script:BinPath\*.exe"
         }
         
-        if ($missingBin) {
-            $errors += "La carpeta bin/ no contiene ejecutables .exe y no se instalaron."
+        if (-not $hasExes) {
+            Write-Host ""
+            Write-Color "  === ERRORES CRITICOS ===" "Red"
+            Write-Color "  [X] La carpeta bin/ no contiene ejecutables y no se instalaron." "Red"
+            return $false # Early Return: Evita errores en cascada
         }
     }
 
-    # 2. Verificar DLLs criticos
-    if (-not $missingBin) {
-        $criticalDlls = @("ggml-base.dll", "ggml.dll", "llama.dll", "llama-common.dll")
-        foreach ($dll in $criticalDlls) {
-            $dllPath = Join-Path $Script:BinPath $dll
-            if (-not (Test-Path $dllPath)) {
-                $warnings += "DLL faltante: $dll (algunas herramientas podrian fallar)"
-            }
+    # 2. Verificar DLLs criticos (Dependencias)
+    $criticalDlls = @("ggml-base.dll", "ggml.dll", "llama.dll", "llama-common.dll")
+    foreach ($dll in $criticalDlls) {
+        if (-not (Test-Path (Join-Path $Script:BinPath $dll))) {
+            $warnings += "DLL faltante: $dll (algunas herramientas podrian fallar)"
         }
     }
 
-    # 3. Verificar espacio en disco
+    # 3. Verificar espacio en disco (Manejo seguro de excepciones)
     try {
         $drive = (Get-Item $Script:BasePath).PSDrive
-        $freeGB = [Math]::Round(($drive.Free / 1GB), 1)
-        if ($freeGB -lt 2) {
-            $warnings += "Poco espacio en disco: $freeGB GB disponibles"
+        if ($null -ne $drive) {
+            $freeGB = [Math]::Round(($drive.Free / 1GB), 1)
+            if ($freeGB -lt 2) {
+                $warnings += "Poco espacio en disco: $freeGB GB disponibles"
+            }
         }
     } catch {
-        # No es critico
+        Write-Verbose "No se pudo determinar el espacio en disco: $_"
     }
 
-    # Mostrar resultados
-    if ($errors.Count -gt 0) {
-        Write-Host ""
-        Write-Color "  === ERRORES CRITICOS ===" "Red"
-        foreach ($e in $errors) {
-            Write-Color "  [X] $e" "Red"
-        }
-        Write-Host ""
-        return $false
-    }
-
+    # Mostrar advertencias si existen
     if ($warnings.Count -gt 0) {
         Write-Host ""
         foreach ($w in $warnings) {
@@ -2083,6 +2080,13 @@ function Show-PostWizardMenu {
     param([hashtable]$CommandInfo)
 
     if (-not $CommandInfo) { return }
+
+    # Asegurar comillas en argumentos con espacios
+    $safeArgs = @()
+    foreach ($a in $CommandInfo.Arguments) {
+        if ($a -match '\s' -and $a -notmatch '^".*"$') { $safeArgs += "`"$a`"" } else { $safeArgs += $a }
+    }
+    $CommandInfo.Arguments = $safeArgs
 
     # Vista previa
     Show-CommandPreview -ExePath $CommandInfo.Executable -Arguments $CommandInfo.Arguments
