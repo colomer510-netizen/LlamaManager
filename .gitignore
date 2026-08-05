@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+build/
+dist/
+*.spec
+bin.backup-*/
+bin.failed-*/
+config.json
+*.gguf
+models/
