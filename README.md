@@ -147,3 +147,9 @@ Navegador ──fetch / SSE──> app.py (127.0.0.1:8756) ──subprocess / HT
 | Inicio automático da `-ngl 0` | Es correcto si no hay GPU utilizable (las integradas se ignoran) |
 | "Detén el servidor antes de actualizar" | Para el servidor en la pestaña Servidor antes de actualizar |
 | El administrador no abre el navegador | Ejecuta `python app.py --browse` manualmente |
+
+## Agradecimientos y Créditos
+
+Este proyecto existe gracias al increíble trabajo de la comunidad de código abierto, y en especial al motor que lo impulsa:
+
+* **[llama.cpp](https://github.com/ggml-org/llama.cpp)**: El asombroso motor de inferencia en C/C++ creado por Georgi Gerganov y la organización GGML, que permite ejecutar modelos de inteligencia artificial localmente con un rendimiento excepcional en casi cualquier hardware. Todos los binarios que orquesta este administrador pertenecen a su proyecto.
