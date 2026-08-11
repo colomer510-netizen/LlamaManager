@@ -1,325 +1,273 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Llama Admin — Administrador de llama.cpp</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama Admin Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div class="glass-background"></div>
+    
+    <div class="app-container">
+        <header class="glass-panel header">
+            <div class="logo">
+                <h1>🦙 Llama <span>Admin Pro</span></h1>
+            </div>
+            <nav class="main-nav">
+                <button class="nav-btn active" data-tab="tab-server">⚙️ Servidor</button>
+                <button class="nav-btn" data-tab="tab-tools">🛠️ Herramientas</button>
+            </nav>
+            <div class="status-indicator">
+                <div class="led offline" id="statusLed"></div>
+                <span id="statusText">Desconectado</span>
+            </div>
+        </header>
 
-<header>
-  <div class="brand">Llama Admin <span class="sub" data-i18n="brandSub">Administrador de llama.cpp</span></div>
-  <div style="display:flex; align-items:center; gap:10px;">
-    <select id="langSel" style="width:auto;" title="Idioma / Language" aria-label="Idioma / Language">
-      <option value="es">ES</option>
-      <option value="en">EN</option>
-    </select>
-    <select id="themeSel" style="width:auto;" title="Tema / Theme" aria-label="Tema / Theme">
-      <option value="dark" data-i18n="themeDark">🌙 Oscuro</option>
-      <option value="light" data-i18n="themeLight">☀️ Claro</option>
-      <option value="auto" data-i18n="themeAuto">🖥 Auto</option>
-    </select>
-    <div id="statusPill" class="pill"><span class="dot"></span><span id="statusText" data-i18n="statusChecking">Comprobando…</span></div>
-  </div>
-</header>
+        <main class="main-content">
+            <!-- TAB: SERVIDOR -->
+            <div id="tab-server" class="tab-pane active">
+                
+                <!-- Alerta de Instalación (oculta por defecto) -->
+                <div id="installAlert" class="glass-panel" style="display: none; border-left: 4px solid #f39c12; margin-bottom: 20px;">
+                    <h2 style="color: #f39c12; font-size: 1.2rem; margin-bottom: 0.5rem;">⚠️ Ejecutable de llama.cpp no encontrado</h2>
+                    <p style="font-size: 0.95rem; margin-bottom: 1rem;">Llama Admin Pro necesita el ejecutable para funcionar. Elige una opción de instalación:</p>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            <h3 style="font-size: 1rem; margin-bottom: 5px;">📦 Instalación Local</h3>
+                            <p style="font-size: 0.85rem; margin-bottom: 15px; opacity: 0.8;">Descarga la última versión de GitHub en la carpeta local <code>bin/</code>. Es la opción más segura.</p>
+                            <button id="btnInstallLocal" class="btn btn-primary btn-sm">Descargar e Instalar Local</button>
+                        </div>
+                        <div style="flex: 1; min-width: 250px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            <h3 style="font-size: 1rem; margin-bottom: 5px;">🌍 Instalación Global (Sistema)</h3>
+                            <p style="font-size: 0.85rem; margin-bottom: 15px; opacity: 0.8;">Instala a nivel de sistema operativo usando <code>llama.app</code>.</p>
+                            <button id="btnInstallGlobal" class="btn btn-secondary btn-sm">Intentar Instalar Global</button>
+                            <div style="margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
+                                O corre esto como Admin en PowerShell:<br>
+                                <code style="display: block; padding: 6px; background: rgba(0,0,0,0.4); border-radius: 4px; margin-top: 5px; user-select: all; font-family: monospace;">irm https://llama.app/install.ps1 | iex</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-<nav class="tabs">
-  <button class="tab active" data-tab="servidor" data-i18n="tabServer">⚙️ Servidor</button>
-  <button class="tab" data-tab="chat" data-i18n="tabChat">💬 Chat</button>
-  <button class="tab" data-tab="bench" data-i18n="tabBench">⚡ Benchmark</button>
-  <button class="tab" data-tab="utils" data-i18n="tabUtils">🔧 Utilidades</button>
-</nav>
+                <div class="grid-2-panels">
+                    <!-- Configuración -->
+                    <section class="glass-panel config-panel">
+                        <h2>⚙️ Configuración del Servidor</h2>
+                        
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                            <select id="profileSelect" style="flex: 1; padding: 0.5rem;">
+                                <option value="">-- Perfiles Guardados --</option>
+                            </select>
+                            <button id="btnSaveProfile" class="btn btn-secondary btn-sm" title="Guardar perfil actual">💾 Guardar</button>
+                            <button id="btnDeleteProfile" class="btn btn-danger btn-sm" title="Eliminar perfil">🗑️</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Modelo (GGUF)</label>
+                            <div class="input-row" style="margin-bottom: 0.5rem;">
+                                <select id="modelSelect">
+                                    <option value="">Cargando modelos...</option>
+                                </select>
+                                <button id="btnScan" class="btn btn-secondary">🔄 Escanear</button>
+                            </div>
+                            <details class="custom-dirs-details">
+                                <summary>Carpetas de modelos personalizadas...</summary>
+                                <textarea id="customDirs" placeholder="C:\Mis Modelos&#10;D:\Ollama..." rows="3"></textarea>
+                                <p class="hint">Escribe una ruta por línea. Se escanearán automáticamente junto a la carpeta local 'models/'.</p>
+                            </details>
+                        </div>
+                        
+                        <div class="form-group">
+                            <details class="custom-dirs-details">
+                                <summary>Origen del Ejecutable (llama.cpp)...</summary>
+                                <div style="margin-top: 0.5rem;">
+                                    <select id="binaryStrategy">
+                                        <option value="auto">Automático (Busca Local, luego Sistema)</option>
+                                        <option value="local">Sólo Local (Carpeta bin/)</option>
+                                        <option value="system">Sólo Sistema (Global/llama.app)</option>
+                                    </select>
+                                </div>
+                            </details>
+                        </div>
 
-<main>
-  <!-- ===================== PESTAÑA SERVIDOR ===================== -->
-  <section id="tab-servidor" class="tabpanel active">
-    <div class="card">
-      <h3><span data-i18n="srvTitle">Configuración del servidor</span> <span class="hint" data-i18n="hintServer">llama-server.exe</span></h3>
-      <div class="body">
-        <div class="field">
-          <label for="modelPath" data-i18n="modelLabel">Modelo (GGUF)</label>
-          <div style="display:flex; gap:8px;">
-            <input id="modelPath" list="modelsList" placeholder="Elige o escribe la ruta…" autocomplete="off" data-i18n-ph="modelPh">
-            <datalist id="modelsList"></datalist>
-            <button id="btnScan" title="Buscar modelos .gguf en el disco" style="white-space:nowrap;" data-i18n="scanBtn">🔍 Buscar</button>
-          </div>
-        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Host</label>
+                                <input type="text" id="host" value="127.0.0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Puerto</label>
+                                <input type="number" id="port" value="8081">
+                            </div>
+                            <div class="form-group">
+                                <label>Contexto (Tokens)</label>
+                                <input type="number" id="ctx" value="4096">
+                            </div>
+                            <div class="form-group">
+                                <label>Capas GPU (ngl)</label>
+                                <input type="number" id="ngl" value="0" title="Usa '99' para cargar todo en la tarjeta gráfica">
+                            </div>
+                            <div class="form-group">
+                                <label>Hilos CPU (threads)</label>
+                                <input type="number" id="threads" value="4">
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button id="btnAutoConfig" class="btn btn-secondary btn-sm" style="width:100%">✨ Auto-Configurar (Optimizado)</button>
+                            </div>
+                        </div>
 
-        <div class="field" style="margin-top:12px;">
-          <label for="presetSelect" data-i18n="presetLabel">Presets guardados</label>
-          <div style="display:flex; gap:8px;">
-            <select id="presetSelect"><option value="" data-i18n="presetEmpty">— sin preset —</option></select>
-            <button id="btnLoadPreset" class="btn-sm" data-i18n="loadBtn">Cargar</button>
-            <button id="btnSavePreset" class="btn-sm" data-i18n="saveBtn">Guardar</button>
-            <button id="btnDeletePreset" class="btn-sm" style="color:var(--danger);" data-i18n="deleteBtn">Borrar</button>
-          </div>
-        </div>
+                        <div class="actions">
+                            <button id="btnStart" class="btn btn-primary btn-glow">▶ Iniciar Servidor</button>
+                            <button id="btnStop" class="btn btn-danger" disabled>⏹ Detener</button>
+                            <button id="btnWebUI" class="btn btn-secondary" style="display:none">🌐 Abrir WebUI</button>
+                        </div>
+                    </section>
 
-        <div class="grid" style="margin-top:16px;">
-          <div class="field"><label data-i18n="hostLabel">Host</label><input id="f_host"></div>
-          <div class="field"><label data-i18n="portLabel">Puerto</label><input id="f_port" type="number" min="1" max="65535"></div>
-          <div class="field"><label data-i18n="ctxLabel">Contexto (tokens, 0 = del modelo)</label><input id="f_ctx" type="number" min="0"></div>
-          <div class="field"><label data-i18n="nglLabel">Capas en GPU (ngl)</label>
-            <select id="f_ngl">
-              <option value="auto" data-i18n="optAuto">auto</option><option value="all" data-i18n="optAll">all</option>
-              <option value="0" data-i18n="optCpuOnly">0 (solo CPU)</option><option value="8">8</option>
-              <option value="16">16</option><option value="24">24</option>
-              <option value="32">32</option><option value="48">48</option><option value="64">64</option>
-            </select>
-          </div>
-          <div class="field"><label data-i18n="threadsLabel">Hilos CPU (vacío = auto)</label><input id="f_threads" type="number" min="0"></div>
-          <div class="field"><label data-i18n="slotsLabel">Slots paralelos (vacío = auto)</label><input id="f_slots" type="number" min="0"></div>
-          <div class="field"><label data-i18n="tempLabel">Temperatura</label><input id="f_temp" type="number" step="0.05" min="0" max="2"></div>
-          <div class="field"><label data-i18n="topPLabel">Top-P</label><input id="f_top_p" type="number" step="0.01" min="0" max="1"></div>
-          <div class="field"><label data-i18n="topKLabel">Top-K</label><input id="f_top_k" type="number" min="0"></div>
-          <div class="field"><label data-i18n="repeatLabel">Penalización de repetición</label><input id="f_repeat" type="number" step="0.05" min="0" max="2"></div>
-          <div class="field"><label data-i18n="seedLabel">Semilla (-1 = aleatoria)</label><input id="f_seed" type="number"></div>
-          <div class="field"><label data-i18n="flashLabel">Flash Attention</label>
-            <select id="f_flash"><option value="auto" data-i18n="optAuto">auto</option><option value="on">on</option><option value="off">off</option></select>
-          </div>
-          <div class="field"><label data-i18n="apiKeyLabel">API key (opcional)</label><input id="f_api_key" type="password" autocomplete="off"></div>
-          <div class="field"><label data-i18n="extraLabel">Argumentos extra (avanzado)</label><input id="f_extra" placeholder="--mlock --metrics …" autocomplete="off"></div>
-        </div>
+                    <!-- Consola de Logs -->
+                    <section class="glass-panel console-panel">
+                        <div class="console-header">
+                            <h2>📝 Logs en vivo</h2>
+                            <label class="toggle">
+                                <input type="checkbox" id="autoScroll" checked>
+                                <span>Auto-scroll</span>
+                            </label>
+                        </div>
+                        <div class="console-body" id="consoleBody">
+                            <pre id="logsOutput">Esperando inicio del servidor...</pre>
+                        </div>
+                    </section>
+                </div>
+            </div>
 
-        <details>
-          <summary data-i18n="dirsSummary">Directorios de búsqueda de modelos</summary>
-          <textarea id="f_scan_dirs" placeholder="Un directorio por línea…" data-i18n-ph="dirsPh"></textarea>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button id="btnSaveDirs" class="btn-sm" data-i18n="saveScanBtn">Guardar y escanear</button>
-          </div>
-        </details>
 
-        <div class="btn-row">
-          <button id="btnStart" class="btn-start" data-i18n="btnStart">▶ Iniciar servidor</button>
-          <button id="btnAutoStart" class="btn-primary" data-i18n="btnAutoStart">⚡ Inicio automático</button>
-          <button id="btnStop" class="btn-stop" disabled data-i18n="btnStop">⏹ Detener</button>
-        </div>
-      </div>
+
+            <!-- TAB: HERRAMIENTAS -->
+            <div id="tab-tools" class="tab-pane">
+                <div class="grid-2-panels">
+                    <section class="glass-panel">
+                        <h2>🔄 Actualizar Llama.cpp</h2>
+                        <p class="desc">Descarga e instala la última versión de los binarios para obtener mejoras de rendimiento y corrección de errores.</p>
+                        
+                        <div style="margin-top: 0.5rem; margin-bottom: 1rem;">
+                            <button class="btn btn-secondary btn-sm" id="btnCheckUpdates">🔎 Buscar Actualizaciones</button>
+                            <span id="updateStatusMsg" style="margin-left: 1rem; font-size: 0.9rem; color: var(--text-secondary);"></span>
+                        </div>
+                        
+                        <div class="grid-2" style="margin-top: 1rem; gap: 1rem;">
+                            <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; display: flex; flex-direction: column;">
+                                <h3 style="font-size: 1rem; margin-bottom: 5px;">📦 Actualizar Local</h3>
+                                <p style="font-size: 0.85rem; margin-bottom: 15px; opacity: 0.8; flex: 1;">Sobrescribe los binarios en la carpeta <code>bin/</code> de la aplicación.</p>
+                                <button class="btn btn-primary btn-sm" id="btnUpdateLocal" style="width: 100%;">Actualizar Local</button>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; display: flex; flex-direction: column;">
+                                <h3 style="font-size: 1rem; margin-bottom: 5px;">🌍 Actualizar Global</h3>
+                                <p style="font-size: 0.85rem; margin-bottom: 15px; opacity: 0.8; flex: 1;">Actualiza la versión instalada en el sistema mediante PowerShell.</p>
+                                <button class="btn btn-secondary btn-sm" id="btnUpdateGlobal" style="width: 100%;">Actualizar Global</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="glass-panel">
+                        <h2>🚀 Benchmark (Rendimiento)</h2>
+                        <p class="desc">Mide cuántos tokens por segundo procesa tu hardware con el modelo actual.</p>
+                        
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label>Tokens de Prompt (-p)</label>
+                            <input type="number" id="benchPrompt" value="512">
+                        </div>
+                        <div class="form-group">
+                            <label>Tokens a Generar (-n)</label>
+                            <input type="number" id="benchGen" value="128">
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary" id="btnRunBenchmark">▶ Ejecutar Benchmark</button>
+                            <button class="btn btn-danger" id="btnStopBenchmark" disabled>🛑 Detener</button>
+                        </div>
+                        
+                        <div id="benchConsole" class="terminal-box" style="height: 150px; margin-top: 1rem; overflow-y: auto;">
+                            <!-- Output del benchmark -->
+                        </div>
+                    </section>
+                    
+                    <section class="glass-panel">
+                        <h2>📦 Cuantización</h2>
+                        <p class="desc">Comprime un modelo pesado para que ocupe menos RAM sin perder casi inteligencia.</p>
+                        
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label>Modelo de Origen</label>
+                            <select id="quantizeModelSelect">
+                                <option value="">Cargando modelos...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Método de Cuantización</label>
+                            <select id="quantizeMethodSelect">
+                                <option value="Q4_K_M">Q4_K_M (Recomendado - Buen balance)</option>
+                                <option value="Q5_K_M">Q5_K_M (Mayor calidad, más pesado)</option>
+                                <option value="Q8_0">Q8_0 (Alta calidad, muy pesado)</option>
+                                <option value="Q4_0">Q4_0 (Rápido, menor calidad)</option>
+                                <option value="F16">F16 (Sin comprimir a 16-bit)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Archivo de Salida (Opcional)</label>
+                            <input type="text" id="quantizeOutputName" placeholder="Se auto-generará si se deja en blanco">
+                        </div>
+
+                        <div class="actions">
+                            <button class="btn btn-primary" id="btnStartQuantize">▶ Iniciar Cuantización</button>
+                            <button class="btn btn-danger" id="btnStopQuantize" disabled>⏹ Detener</button>
+                        </div>
+                        
+                        <div id="quantizeConsole" class="terminal-box" style="height: 150px; margin-top: 1rem; overflow-y: auto; white-space: pre-wrap; font-family: monospace; padding: 10px;"></div>
+                    </section>
+
+                    <section class="glass-panel">
+                        <h2>🔄 Convertidor (Hugging Face a GGUF)</h2>
+                        <p class="desc">Convierte modelos descargados en formato PyTorch/Safetensors al formato optimizado GGUF.</p>
+                        
+                        <div class="form-group">
+                            <label>Carpeta del Modelo Original (Hugging Face)</label>
+                            <input type="text" id="convertInputDir" placeholder="C:\Modelos\Meta-Llama-3-8B-Instruct">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Tipo de Salida (Precisión)</label>
+                            <select id="convertOutType">
+                                <option value="f16" selected>f16 (Recomendado - FP16)</option>
+                                <option value="f32">f32 (Alta precisión - Más pesado)</option>
+                                <option value="q8_0">q8_0 (Cuantización de 8-bit)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Archivo de Salida (Opcional)</label>
+                            <input type="text" id="convertOutput" placeholder="Se guardará en la misma carpeta original">
+                        </div>
+                        
+                        <div class="actions">
+                            <button class="btn btn-primary" id="btnStartConvert">▶ Iniciar Conversión</button>
+                            <button class="btn btn-danger" id="btnStopConvert" disabled>⏹ Detener</button>
+                        </div>
+                        
+                        <div id="convertConsole" class="terminal-box" style="height: 150px; margin-top: 1rem; overflow-y: auto; white-space: pre-wrap; font-family: monospace; padding: 10px;"></div>
+                    </section>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <div class="card">
-      <h3><span data-i18n="consoleTitle">Consola</span> <span class="hint" data-i18n="hintConsole">logs en vivo de llama-server</span></h3>
-      <div class="console" id="console"><span class="empty" data-i18n="consoleEmpty">Inicia el servidor para ver los logs…</span></div>
-      <div style="display:flex; gap:12px; padding:8px 16px; border-top:1px solid var(--border); align-items:center;">
-        <label style="display:flex; gap:6px; align-items:center; font-size:12px;">
-          <input type="checkbox" id="chkAutoscroll" checked data-i18n="autoscroll"> Autodesplazar
-        </label>
-        <button id="btnClearLogs" class="btn-sm" data-i18n="clearBtn">Limpiar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== PESTAÑA BENCHMARK ===================== -->
-  <section id="tab-bench" class="tabpanel">
-    <div class="card">
-      <h3><span data-i18n="benchTitle">llama-bench — prueba de velocidad</span> <span class="hint" data-i18n="hintBench">mide tok/s de prompt y generación</span></h3>
-      <div class="body">
-        <div class="field">
-          <label for="bm_model" data-i18n="modelLabel">Modelo</label>
-          <input id="bm_model" list="modelsList" placeholder="Elige un modelo…" autocomplete="off" data-i18n-ph="modelPh">
-        </div>
-        <div class="grid" style="margin-top:14px;">
-          <div class="field"><label data-i18n="threadsLabel">Hilos CPU (vacío = auto)</label><input id="bm_threads" type="number" min="1"></div>
-          <div class="field"><label data-i18n="nglLabel">Capas en GPU</label>
-            <select id="bm_ngl">
-              <option value="-1" data-i18n="optAuto">auto</option><option value="all" data-i18n="optAll">all</option><option value="0" data-i18n="optCpuOnly">0 (solo CPU)</option>
-              <option value="8">8</option><option value="16">16</option><option value="24">24</option>
-              <option value="32">32</option><option value="48">48</option><option value="64">64</option>
-            </select>
-          </div>
-          <div class="field"><label data-i18n="npLabel">Tokens de prompt (n_prompt)</label><input id="bm_np" type="number" min="1" value="512"></div>
-          <div class="field"><label data-i18n="ngLabel">Tokens a generar (n_gen)</label><input id="bm_ng" type="number" min="1" value="128"></div>
-          <div class="field"><label data-i18n="batchLabel">Batch size</label><input id="bm_batch" type="number" min="1" value="2048"></div>
-          <div class="field"><label data-i18n="repsLabel">Repeticiones por prueba</label><input id="bm_reps" type="number" min="1" value="5"></div>
-          <div class="field"><label data-i18n="fmtLabel">Formato de salida</label>
-            <select id="bm_fmt"><option value="md" data-i18n="optMd">md (tabla)</option><option value="json">json</option><option value="csv">csv</option></select>
-          </div>
-          <div class="field"><label data-i18n="flashLabel">Flash Attention</label>
-            <select id="bm_flash"><option value="auto" data-i18n="optAuto">auto</option><option value="on">on</option><option value="off">off</option></select>
-          </div>
-          <div class="field full"><label data-i18n="extraLabel">Argumentos extra (avanzado)</label><input id="bm_extra" placeholder="--numa distribute …" autocomplete="off"></div>
-        </div>
-        <div class="btn-row">
-          <button id="btnRunBench" class="btn-start" data-i18n="btnRunBench">▶ Ejecutar benchmark</button>
-          <button id="btnBenchAuto" class="btn-primary" data-i18n="btnBenchAuto">⚡ Auto (según recursos)</button>
-          <button id="btnStopTool" class="btn-stop" disabled data-i18n="btnStopTool">⏹ Detener</button>
-        </div>
-        <div style="margin-top:10px; font-size:12px; color:var(--muted);" data-i18n="benchHint">
-          El benchmark tarda varios minutos: carga el modelo y repite cada prueba. Los resultados aparecen en la consola al terminar.
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <h3 data-i18n="benchConsoleTitle">Consola de resultados</h3>
-      <div class="console" id="consoleBench"><span class="empty" data-i18n="benchConsoleEmpty">Ejecuta un benchmark para ver los resultados…</span></div>
-      <div style="display:flex; gap:12px; padding:8px 16px; border-top:1px solid var(--border); align-items:center;">
-        <label style="display:flex; gap:6px; align-items:center; font-size:12px;">
-          <input type="checkbox" id="chkAutoscrollB" checked data-i18n="autoscroll"> Autodesplazar
-        </label>
-        <button id="btnClearBench" class="btn-sm" data-i18n="clearBtn">Limpiar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== PESTAÑA UTILIDADES ===================== -->
-  <section id="tab-utils" class="tabpanel">
-    <div class="card">
-      <h3><span data-i18n="cliTitle">llama-cli — chat por consola</span> <span class="hint" data-i18n="hintCli">generación única o terminal interactiva</span></h3>
-      <div class="body">
-        <div class="field">
-          <label for="cli_model" data-i18n="modelLabel">Modelo</label>
-          <input id="cli_model" list="modelsList" placeholder="Elige un modelo…" autocomplete="off" data-i18n-ph="modelPh">
-        </div>
-        <div class="field" style="margin-top:12px;">
-          <label for="cli_prompt" data-i18n="promptLabel">Prompt</label>
-          <textarea id="cli_prompt" style="min-height:70px;" placeholder="Escribe aquí el prompt…" data-i18n-ph="promptPh"></textarea>
-        </div>
-        <div class="grid" style="margin-top:12px;">
-          <div class="field"><label data-i18n="nLabel">Tokens a generar</label><input id="cli_n" type="number" min="1" value="256"></div>
-          <div class="field"><label data-i18n="tempLabel">Temperatura</label><input id="cli_temp" type="number" step="0.05" min="0" max="2" value="0.80"></div>
-        </div>
-        <div class="btn-row">
-          <button id="btnRunCli" class="btn-start" data-i18n="btnGenCli">▶ Generar en consola</button>
-          <button id="btnTermCli" class="btn-primary" data-i18n="btnTermCli">🖥 Abrir terminal interactiva</button>
-          <button id="btnCliAuto" class="btn-primary" data-i18n="btnCliAuto">⚡ Auto</button>
-        </div>
-        <div style="margin-top:10px; font-size:12px; color:var(--muted);" data-i18n="cliHint">
-          "Generar en consola" responde una sola vez aquí abajo. La terminal interactiva abre una ventana
-          de Windows donde puedes chatear de ida y vuelta con el modelo.
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3><span data-i18n="tokTitle">llama-tokenize — contar tokens</span> <span class="hint" data-i18n="hintTok">revisa cuántos tokens consume tu texto</span></h3>
-      <div class="body">
-        <div class="field">
-          <label for="tok_model" data-i18n="tokModelLabel">Modelo (define el vocabulario)</label>
-          <input id="tok_model" list="modelsList" placeholder="Elige un modelo…" autocomplete="off" data-i18n-ph="modelPh">
-        </div>
-        <div class="field" style="margin-top:12px;">
-          <label for="tok_text" data-i18n="tokTextLabel">Texto</label>
-          <textarea id="tok_text" style="min-height:80px;" placeholder="Pega aquí el texto…" data-i18n-ph="tokTextPh"></textarea>
-        </div>
-        <div class="btn-row">
-          <button id="btnTokenize" class="btn-primary" data-i18n="btnTokenize">🔢 Tokenizar</button>
-        </div>
-        <div id="tokResult" style="display:none; margin-top:14px;">
-          <div style="font-size:20px; font-weight:700; color:var(--accent2);" id="tokCount"></div>
-          <div id="tokList" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3><span data-i18n="qTitle">llama-quantize — convertir modelos</span> <span class="hint" data-i18n="hintQ">reduce el tamaño del GGUF</span></h3>
-      <div class="body">
-        <div class="field">
-          <label for="q_in" data-i18n="qInLabel">Modelo origen</label>
-          <input id="q_in" list="modelsList" placeholder="Elige un modelo .gguf…" autocomplete="off" data-i18n-ph="qInPh">
-        </div>
-        <div class="field" style="margin-top:12px;">
-          <label for="q_out" data-i18n="qOutLabel">Archivo de salida</label>
-          <input id="q_out" placeholder="Se completa automáticamente…" autocomplete="off" data-i18n-ph="qOutPh">
-        </div>
-        <div class="grid" style="margin-top:12px;">
-          <div class="field"><label data-i18n="qTypeLabel">Tipo de cuantización</label>
-            <select id="q_type">
-              <option value="Q4_K_M" selected data-i18n="qQ4KM">Q4_K_M — calidad/tamaño equilibrado (recomendado)</option>
-              <option value="Q4_0" data-i18n="qQ40">Q4_0 — rápido, menor calidad</option>
-              <option value="Q5_K_M" data-i18n="qQ5KM">Q5_K_M — mejor calidad, más grande</option>
-              <option value="Q5_0">Q5_0</option>
-              <option value="Q6_K" data-i18n="qQ6K">Q6_K — alta calidad</option>
-              <option value="Q8_0" data-i18n="qQ80">Q8_0 — casi sin pérdida</option>
-              <option value="IQ3_M" data-i18n="qIQ3">IQ3_M — ultra compacto</option>
-              <option value="IQ4_XS" data-i18n="qIQ4">IQ4_XS — ultra compacto</option>
-              <option value="F16" data-i18n="qF16">F16 — sin pérdida (base)</option>
-            </select>
-          </div>
-          <div class="field"><label data-i18n="qThreadsLabel">Hilos (vacío = auto)</label><input id="q_threads" type="number" min="1"></div>
-        </div>
-        <div class="btn-row">
-          <button id="btnQuant" class="btn-start" data-i18n="btnQuant">▶ Cuantizar</button>
-          <button id="btnStopToolU" class="btn-stop" disabled data-i18n="btnStopToolU">⏹ Detener</button>
-        </div>
-        <div style="margin-top:10px; font-size:12px; color:var(--muted);" data-i18n="qHint">
-          Para mejores resultados conviene partir de un modelo F16/Q8_0 (cuantizar un modelo ya cuantizado
-          pierde calidad). La conversión puede tardar varios minutos.
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3><span data-i18n="updTitle">Actualización de llama.cpp</span> <span class="hint" data-i18n="updHint">GitHub releases oficiales</span></h3>
-      <div class="body">
-        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-          <span id="updCurrent" class="pill" style="color:var(--text);"><span class="dot"></span><span id="updCurrentText">—</span></span>
-          <button id="btnUpdCheck" class="btn-primary btn-sm" data-i18n="updCheckingBtn">🔍 Comprobar actualización</button>
-          <button id="btnUpdRun" class="btn-start btn-sm" style="display:none;" data-i18n="updDownload">⬇ Descargar e instalar</button>
-          <button id="btnUpdRevert" class="btn-stop btn-sm" style="display:none;" data-i18n="updRevert">↩ Revertir</button>
-        </div>
-        <div id="updStatus" style="margin-top:10px; font-size:12px; color:var(--muted); white-space:pre-wrap;"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3><span data-i18n="toolsConsoleTitle">Consola de herramientas</span> <span class="hint" data-i18n="hintTools">salida de llama-cli y llama-quantize</span></h3>
-      <div class="console" id="consoleUtils"><span class="empty" data-i18n="toolsConsoleEmpty">Aquí verás la salida de las herramientas…</span></div>
-      <div style="display:flex; gap:12px; padding:8px 16px; border-top:1px solid var(--border); align-items:center;">
-        <label style="display:flex; gap:6px; align-items:center; font-size:12px;">
-          <input type="checkbox" id="chkAutoscrollU" checked data-i18n="autoscroll"> Autodesplazar
-        </label>
-        <button id="btnClearUtils" class="btn-sm" data-i18n="clearBtn">Limpiar</button>
-      </div>
-    </div>
-  </section>
-
-  <section id="tab-chat" class="tabpanel">
-    <div class="card" style="display:flex; flex-direction:column; flex:1;">
-      <div class="chat-toolbar">
-        <span id="chatModelLabel" style="font-weight:600; color:var(--text);">—</span>
-        <span id="chatInfoLabel" data-i18n="chatInfoOff">Inicia el servidor para chatear</span>
-        <span style="flex:1"></span>
-        <span class="mlabel" data-i18n="tempLabel">Temp</span>
-        <input id="f_chat_temp" type="number" step="0.05" min="0" max="2" value="0.8" style="width:70px;">
-        <span class="mlabel" data-i18n="maxTokLabel">Máx. tokens</span>
-        <input id="f_chat_max" type="number" step="256" min="16" value="2048" style="width:100px;">
-        <button id="btnNewChat" class="btn-sm" data-i18n="btnNewChat">＋ Nuevo chat</button>
-      </div>
-      <div id="chat-area">
-        <div class="chat-offline">
-          <div class="big">💬</div>
-          <span data-i18n="chatOffline1">El servidor no está en ejecución.<br></span>
-          <span data-i18n="chatOffline2">Ve a la pestaña Servidor, elige un modelo y pulsa ▶ Iniciar servidor.</span>
-        </div>
-      </div>
-      <div id="chat-input-row">
-        <textarea id="chatInput" placeholder="Escribe tu mensaje… (Enter para enviar, Shift+Enter para salto de línea)" data-i18n-ph="chatInputPh"></textarea>
-        <button id="btnSend" class="btn-primary" disabled data-i18n="btnSend">Enviar</button>
-        <button id="btnAbort" class="btn-stop" style="display:none;" data-i18n="btnAbort">⏹ Detener</button>
-      </div>
-    </div>
-  </section>
-</main>
-
-<footer id="footerInfo" data-i18n="footerLoading">Cargando…</footer>
-
-<div id="autoModal" class="modal">
-  <div class="modal-box">
-    <h3 data-i18n="autoModalTitle">⚡ Configuración automática</h3>
-    <div id="autoExplain" class="auto-explain"></div>
-    <div class="btn-row" style="margin-top:0;">
-      <button id="btnAutoGo" class="btn-start" data-i18n="btnAutoGo">▶ Iniciar con estos valores</button>
-      <button id="btnAutoCancel" class="btn-stop" data-i18n="btnAutoCancel">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="/static/js/app.js"></script>
+    <!-- Cargar librería marcada para Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="js/app.js?v=5"></script>
 </body>
 </html>

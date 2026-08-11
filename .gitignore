@@ -8,3 +8,7 @@ bin.failed-*/
 config.json
 *.gguf
 models/
+bin/
+*.log
+resp.json
+.vscode/

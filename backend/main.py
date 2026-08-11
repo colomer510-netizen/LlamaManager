@@ -1,28 +1,27 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from .api import routes
-from backend.paths import get_app_dir
+from fastapi.middleware.cors import CORSMiddleware
+from backend.routers import server, system, tools
+from backend.paths import get_static_dir
 import os
 
-app = FastAPI(title="Llama Admin Moderno")
+app = FastAPI(title="Llama Admin Pro")
 
-app.include_router(routes.router, prefix="/api")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=os.path.join(get_app_dir(), "static")), name="static")
+app.include_router(server.router, prefix="/api/server")
+app.include_router(system.router, prefix="/api/system")
+app.include_router(tools.router, prefix="/api/tools")
 
-@app.get("/")
-def serve_index():
-    return FileResponse(os.path.join(get_app_dir(), "static", "index.html"))
+# Ensure static dir exists before mounting
+static_dir = get_static_dir()
+os.makedirs(static_dir, exist_ok=True)
 
-if __name__ == "__main__":
-    import uvicorn
-    import webbrowser
-    import threading
-    
-    def open_browser():
-        webbrowser.open("http://127.0.0.1:8756")
-        
-    threading.Timer(1.5, open_browser).start()
-    uvicorn.run(app, host="127.0.0.1", port=8756)
+# Important: This MUST be at the end, so it doesn't shadow the API routes
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
