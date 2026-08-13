@@ -1,3 +1,5 @@
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 # LlamaManager
 
 LlamaManager es una herramienta para gestionar, desplegar y probar modelos LLaMA y variantes afines (p. ej. Llama 2). Proporciona utilidades para descargar pesos, configurar entornos, ejecutar inferencias locales y orquestar despliegues de pruebas.
@@ -97,7 +99,8 @@ Si tu copia difiere, ajusta esta sección para reflejar la estructura real.
 
 ## Licencia
 
-Este proyecto aún no tiene una licencia especificada. Si quieres, añade un archivo LICENSE con la licencia que prefieras (MIT, Apache-2.0, etc.).
+This project is licensed under the GNU General Public License v3.0 — see the LICENSE file for details.
+Copyright (C) 2026 colomer510-netizen
 
 ## Contacto
 
