@@ -1,4 +1,8 @@
 #!/bin/bash
+# Copyright (C) 2026 colomer510-netizen
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Licensed under the GNU General Public License v3.0; see the LICENSE file in the project root.
+
 cd "$(dirname "$0")"
 
 echo "[1/2] Checking virtual environment..."
