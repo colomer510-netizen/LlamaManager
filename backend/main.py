@@ -1,3 +1,7 @@
+# Copyright (C) 2026 colomer510-netizen
+# Licensed under the GNU General Public License v3.0.
+# See the LICENSE file in the project root for details.
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
