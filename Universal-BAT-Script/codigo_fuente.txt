@@ -104,6 +104,50 @@ if "!mod_opt!"=="!manual_opt!" (
 )
 exit /b
 
+:autodetectar_sistema
+echo.
+echo [INFO] Analizando caracteristicas del sistema...
+
+:: 1. Detectar RAM aproximada
+set "ram_gb=8"
+for /f "tokens=2 delims==" %%A in ('wmic computersystem get TotalPhysicalMemory /value 2^>nul') do (
+    set "bytes=%%A"
+    :: Quitar los ultimos 9 digitos para aproximar gigabytes (ya que batch no soporta enteros > 32 bits)
+    set "bytes_str=!bytes:~0,-9!"
+    if not "!bytes_str!"=="" set /a ram_gb=!bytes_str!
+)
+if !ram_gb! geq 16 (
+    set "ctx_flag=-c 4096"
+    echo [OK] RAM detectada: !ram_gb! GB. Asignando contexto extendido (4096).
+) else (
+    set "ctx_flag=-c 2048"
+    echo [OK] RAM detectada: !ram_gb! GB. Asignando contexto seguro (2048).
+)
+
+:: 2. Detectar Hilos CPU
+set /a threads=%NUMBER_OF_PROCESSORS%
+if !threads! gtr 2 (
+    set /a opt_threads=!threads!-1
+) else (
+    set opt_threads=!threads!
+)
+set "thread_flag=-t !opt_threads!"
+echo [OK] Procesador de !threads! hilos. Reservando 1 para el sistema, asignando !opt_threads! a IA.
+
+:: 3. Prueba de Fuego de GPU
+echo [INFO] Realizando prueba de estres grafico (GPU)...
+llama cli -m "%model%" -n 1 -ngl 99 >nul 2>nul
+if !errorlevel! neq 0 (
+    echo [ADVERTENCIA] Fallo grafico detectado (ej. Drivers de Vulkan incompatibles).
+    echo [INFO] Cambiando a Modo Seguro por CPU.
+    set "gpu_flag=-ngl 0"
+) else (
+    echo [OK] Prueba grafica superada. Usando maxima aceleracion de GPU.
+    set "gpu_flag=-ngl 99"
+)
+echo.
+exit /b
+
 :instalar
 cls
 echo =======================================================
@@ -130,8 +174,9 @@ if not exist "%model%" (
     goto menu_loop
 )
 
-echo Iniciando chat interactivo...
-llama cli -m "%model%" -c 2048 -n -1 --color -i
+call :autodetectar_sistema
+echo Iniciando chat interactivo optimizado...
+llama cli -m "%model%" !ctx_flag! !thread_flag! !gpu_flag! -n -1 --color -i
 pause
 goto menu_loop
 
@@ -149,8 +194,9 @@ if not exist "%model%" (
     goto menu_loop
 )
 
+call :autodetectar_sistema
 echo Iniciando servidor web en http://127.0.0.1:8080 ...
-llama serve -m "%model%" --port 8080 -c 2048
+llama serve -m "%model%" --port 8080 !ctx_flag! !thread_flag! !gpu_flag!
 pause
 goto menu_loop
 
@@ -167,8 +213,9 @@ if not exist "%model%" (
     pause
     goto menu_loop
 )
-echo Ejecutando prueba de velocidad...
-llama bench -m "%model%"
+call :autodetectar_sistema
+echo Ejecutando prueba de velocidad optimizada...
+llama bench -m "%model%" !thread_flag! !gpu_flag!
 pause
 goto menu_loop
 
