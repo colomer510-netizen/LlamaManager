@@ -136,7 +136,7 @@ echo [OK] Procesador de !threads! hilos. Reservando 1 para el sistema, asignando
 
 :: 3. Prueba de Fuego de GPU
 echo [INFO] Realizando prueba de estres grafico (GPU)...
-llama cli -m "%model%" -n 1 -ngl 99 >nul 2>nul
+llama cli -m "%model%" -p "test" -n 1 -ngl 99 >nul 2>nul
 if !errorlevel! neq 0 (
     echo [ADVERTENCIA] Fallo grafico detectado (ej. Drivers de Vulkan incompatibles).
     echo [INFO] Cambiando a Modo Seguro por CPU.
