@@ -2,6 +2,8 @@
 setlocal enabledelayedexpansion
 chcp 65001 >nul
 title Gestor Universal de Llama.cpp
+:: Configurar color a Cyan sobre Negro para un look mas moderno
+color 0B
 
 :: Asegurar que el directorio de trabajo es el mismo donde esta el .bat/.exe
 cd /d "%~dp0"
@@ -12,41 +14,55 @@ if not "%~1"=="" (
     goto cli_directo
 )
 
-:menu
+set "opcion_actual=1"
+set "total_opciones=8"
+
+:menu_loop
 cls
 echo =================================================================
 echo                 GESTOR UNIVERSAL DE LLAMA.CPP
 echo =================================================================
 echo.
-echo --- INSTALACION ---
-echo 1. Instalar / Actualizar llama.cpp (requiere internet)
+echo Usa las FLECHAS (Arriba/Abajo) para moverte y ENTER para elegir.
 echo.
-echo --- USO PRINCIPAL ---
-echo 2. Iniciar Chat en Terminal (llama cli)
-echo 3. Iniciar Servidor Web (llama serve)
+
+if "!opcion_actual!"=="1" ( echo ^> [X] 1. Instalar / Actualizar llama.cpp ^< ) else ( echo   [ ] 1. Instalar / Actualizar llama.cpp )
 echo.
-echo --- HERRAMIENTAS AVANZADAS ---
-echo 4. Benchmark de Rendimiento (llama bench)
-echo 5. Cuantizar un modelo (llama quantize)
-echo 6. Generar Matriz de Importancia (llama-imatrix)
-echo 7. Dividir/Unir GGUF (llama-gguf-split)
+if "!opcion_actual!"=="2" ( echo ^> [X] 2. Iniciar Chat en Terminal (llama cli) ^< ) else ( echo   [ ] 2. Iniciar Chat en Terminal (llama cli) )
+if "!opcion_actual!"=="3" ( echo ^> [X] 3. Iniciar Servidor Web (llama serve) ^< ) else ( echo   [ ] 3. Iniciar Servidor Web (llama serve) )
 echo.
-echo 8. Salir
+if "!opcion_actual!"=="4" ( echo ^> [X] 4. Benchmark de Rendimiento (llama bench) ^< ) else ( echo   [ ] 4. Benchmark de Rendimiento (llama bench) )
+if "!opcion_actual!"=="5" ( echo ^> [X] 5. Cuantizar un modelo (llama quantize) ^< ) else ( echo   [ ] 5. Cuantizar un modelo (llama quantize) )
+if "!opcion_actual!"=="6" ( echo ^> [X] 6. Generar Matriz de Importancia (llama-imatrix) ^< ) else ( echo   [ ] 6. Generar Matriz de Importancia (llama-imatrix) )
+if "!opcion_actual!"=="7" ( echo ^> [X] 7. Dividir/Unir GGUF (llama-gguf-split) ^< ) else ( echo   [ ] 7. Dividir/Unir GGUF (llama-gguf-split) )
+echo.
+if "!opcion_actual!"=="8" ( echo ^> [X] 8. Salir ^< ) else ( echo   [ ] 8. Salir )
 echo =================================================================
-set /p opcion="Elige una opcion (1-8): "
 
-if "%opcion%"=="1" goto instalar
-if "%opcion%"=="2" goto cli
-if "%opcion%"=="3" goto servidor
-if "%opcion%"=="4" goto bench
-if "%opcion%"=="5" goto cuantizar
-if "%opcion%"=="6" goto imatrix
-if "%opcion%"=="7" goto split
-if "%opcion%"=="8" goto salir
+:: Capturar tecla con PowerShell sin pausar visiblemente y limpiando el buffer de teclas
+for /f %%a in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "$Host.UI.RawUI.FlushInputBuffer(); while(1){if([Console]::KeyAvailable){$k=[Console]::ReadKey($true).Key; if($k -eq 'UpArrow'){$k='Up';break} elseif($k -eq 'DownArrow'){$k='Down';break} elseif($k -eq 'Enter'){$k='Enter';break}}}; $k"') do set "key=%%a"
 
-echo Opcion no valida.
-pause
-goto menu
+if "!key!"=="Up" (
+    set /a opcion_actual-=1
+    if !opcion_actual! lss 1 set opcion_actual=!total_opciones!
+    goto menu_loop
+)
+if "!key!"=="Down" (
+    set /a opcion_actual+=1
+    if !opcion_actual! gtr !total_opciones! set opcion_actual=1
+    goto menu_loop
+)
+if "!key!"=="Enter" (
+    if "!opcion_actual!"=="1" goto instalar
+    if "!opcion_actual!"=="2" goto cli
+    if "!opcion_actual!"=="3" goto servidor
+    if "!opcion_actual!"=="4" goto bench
+    if "!opcion_actual!"=="5" goto cuantizar
+    if "!opcion_actual!"=="6" goto imatrix
+    if "!opcion_actual!"=="7" goto split
+    if "!opcion_actual!"=="8" goto salir
+)
+goto menu_loop
 
 :verificar_instalacion
 :: Funcion para verificar si los binarios estan disponibles
@@ -97,7 +113,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://llama.app/in
 echo.
 echo Proceso finalizado.
 pause
-goto menu
+goto menu_loop
 
 :cli
 cls
@@ -111,13 +127,13 @@ call :seleccionar_modelo
 if not exist "%model%" (
     echo El archivo no existe: "%model%"
     pause
-    goto menu
+    goto menu_loop
 )
 
 echo Iniciando chat interactivo...
 llama cli -m "%model%" -c 2048 -n -1 --color -i
 pause
-goto menu
+goto menu_loop
 
 :servidor
 cls
@@ -130,13 +146,13 @@ call :seleccionar_modelo
 if not exist "%model%" (
     echo El archivo no existe: "%model%"
     pause
-    goto menu
+    goto menu_loop
 )
 
 echo Iniciando servidor web en http://127.0.0.1:8080 ...
 llama serve -m "%model%" --port 8080 -c 2048
 pause
-goto menu
+goto menu_loop
 
 :bench
 cls
@@ -149,12 +165,12 @@ call :seleccionar_modelo
 if not exist "%model%" (
     echo El archivo no existe.
     pause
-    goto menu
+    goto menu_loop
 )
 echo Ejecutando prueba de velocidad...
 llama bench -m "%model%"
 pause
-goto menu
+goto menu_loop
 
 :cuantizar
 cls
@@ -169,7 +185,7 @@ set input=!input:"=!
 if not exist "!input!" (
     echo El archivo de entrada no existe: !input!
     pause
-    goto menu
+    goto menu_loop
 )
 
 echo.
@@ -185,7 +201,7 @@ echo.
 echo Iniciando cuantizacion...
 llama quantize "!input!" "!output!" !method!
 pause
-goto menu
+goto menu_loop
 
 :imatrix
 cls
@@ -198,7 +214,7 @@ call :seleccionar_modelo
 if not exist "%model%" (
     echo El archivo no existe.
     pause
-    goto menu
+    goto menu_loop
 )
 
 echo.
@@ -212,7 +228,7 @@ llama-imatrix -m "%model%" -f "!data!" -o "imatrix.dat"
 echo.
 echo Archivo guardado como imatrix.dat
 pause
-goto menu
+goto menu_loop
 
 :split
 cls
@@ -246,7 +262,7 @@ if "%split_opt%"=="1" (
     echo Opcion invalida.
 )
 pause
-goto menu
+goto menu_loop
 
 :salir
 exit
