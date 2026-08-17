@@ -85,10 +85,9 @@ goto menu
 :: Funcion para verificar si los binarios estan disponibles
 where llama-cli.exe >nul 2>nul
 if !errorlevel! neq 0 (
-    echo [ADVERTENCIA] No se encontro 'llama-cli' en el sistema.
-    echo Probablemente necesites ejecutar la opcion 1 -Instalar- primero.
-    pause
-    goto menu
+    echo [ADVERTENCIA] No se encontro 'llama-cli' en el PATH.
+    echo Si ya lo instalaste, ignora este mensaje. Intentando continuar...
+    echo.
 )
 exit /b
 
