@@ -1,36 +1,3 @@
-::[Bat To Exe Converter]
-::
-::YAwzoRdxOk+EWAjk
-::fBw5plQjdCyDJGyX8VAjFDFbTRWXNWX6Kbcd5uz0086ItUMRW+M7a7P39pWjAa4w2nXYWZos23t3mcUNCx5KQielZxkxu31DuimnFvPRgAzzQ1id2kc8Gmh1uGrTgyV1adBn+g==
-::YAwzuBVtJxjWCl3EqQJgSA==
-::ZR4luwNxJguZRRnk
-::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSjk=
-::cBs/ulQjdF+5
-::ZR41oxFsdFKZSDk=
-::eBoioBt6dFKZSDk=
-::cRo6pxp7LAbNWATEpCI=
-::egkzugNsPRvcWATEpCI=
-::dAsiuh18IRvcCxnZtBJQ
-::cRYluBh/LU+EWAnk
-::YxY4rhs+aU+JeA==
-::cxY6rQJ7JhzQF1fEqQJQ
-::ZQ05rAF9IBncCkqN+0xwdVs0
-::ZQ05rAF9IAHYFVzEqQJQ
-::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
-::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
-::cRolqwZ3JBvQF1fEqQJQ
-::dhA7uBVwLU+EWDk=
-::YQ03rBFzNR3SWATElA==
-::dhAmsQZ3MwfNWATElA==
-::ZQ0/vhVqMQ3MEVWAtB9wSA==
-::Zg8zqx1/OA3MEVWAtB9wSA==
-::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFDFbTRWXNWX6Kbcd5uz0086ItUMRW+M7a7P39pWjAa4w2nXYWZos23t3mcUNCx5KQielZxkxu31DuimnFvPRgAzzQ1id2mc8Gmh1qmLejSw+cp1tgsZj
-::YB416Ek+ZG8=
-::
-::
-::978f952a14a936cc963da21a135fa983
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
@@ -55,12 +22,12 @@ echo --- INSTALACION ---
 echo 1. Instalar / Actualizar llama.cpp (requiere internet)
 echo.
 echo --- USO PRINCIPAL ---
-echo 2. Iniciar Chat en Terminal (llama-cli)
-echo 3. Iniciar Servidor Web (llama-server)
+echo 2. Iniciar Chat en Terminal (llama cli)
+echo 3. Iniciar Servidor Web (llama serve)
 echo.
 echo --- HERRAMIENTAS AVANZADAS ---
-echo 4. Benchmark de Rendimiento (llama-bench)
-echo 5. Cuantizar un modelo (llama-quantize)
+echo 4. Benchmark de Rendimiento (llama bench)
+echo 5. Cuantizar un modelo (llama quantize)
 echo 6. Generar Matriz de Importancia (llama-imatrix)
 echo 7. Dividir/Unir GGUF (llama-gguf-split)
 echo.
@@ -83,9 +50,9 @@ goto menu
 
 :verificar_instalacion
 :: Funcion para verificar si los binarios estan disponibles
-where llama-cli.exe >nul 2>nul
+where llama >nul 2>nul
 if !errorlevel! neq 0 (
-    echo [ADVERTENCIA] No se encontro 'llama-cli' en el PATH.
+    echo [ADVERTENCIA] No se encontro 'llama' en el PATH.
     echo Si ya lo instalaste, ignora este mensaje. Intentando continuar...
     echo.
 )
@@ -148,7 +115,7 @@ if not exist "%model%" (
 )
 
 echo Iniciando chat interactivo...
-llama-cli.exe -m "%model%" -c 2048 -n -1 --color -i
+llama cli -m "%model%" -c 2048 -n -1 --color -i
 pause
 goto menu
 
@@ -167,14 +134,14 @@ if not exist "%model%" (
 )
 
 echo Iniciando servidor web en http://127.0.0.1:8080 ...
-llama-server.exe -m "%model%" --port 8080 -c 2048
+llama serve -m "%model%" --port 8080 -c 2048
 pause
 goto menu
 
 :bench
 cls
 echo =======================================================
-echo Benchmark de Rendimiento (llama-bench)
+echo Benchmark de Rendimiento
 echo =======================================================
 call :verificar_instalacion
 call :seleccionar_modelo
@@ -185,14 +152,14 @@ if not exist "%model%" (
     goto menu
 )
 echo Ejecutando prueba de velocidad...
-llama-bench.exe -m "%model%"
+llama bench -m "%model%"
 pause
 goto menu
 
 :cuantizar
 cls
 echo =======================================================
-echo Cuantizar un Modelo (Reducir tamano/memoria)
+echo Cuantizar un Modelo
 echo =======================================================
 call :verificar_instalacion
 echo Arrastra el archivo de modelo de entrada (.gguf/.bin) aqui:
@@ -216,14 +183,14 @@ set /p method="Metodo de cuantizacion (ej. Q4_K_M): "
 
 echo.
 echo Iniciando cuantizacion...
-llama-quantize.exe "!input!" "!output!" !method!
+llama quantize "!input!" "!output!" !method!
 pause
 goto menu
 
 :imatrix
 cls
 echo =======================================================
-echo Generar Matriz de Importancia (llama-imatrix)
+echo Generar Matriz de Importancia
 echo =======================================================
 call :verificar_instalacion
 call :seleccionar_modelo
@@ -241,7 +208,7 @@ set data=!data:"=!
 
 echo.
 echo Iniciando calculo de imatrix (esto puede tomar tiempo)...
-llama-imatrix.exe -m "%model%" -f "!data!" -o "imatrix.dat"
+llama-imatrix -m "%model%" -f "!data!" -o "imatrix.dat"
 echo.
 echo Archivo guardado como imatrix.dat
 pause
@@ -265,7 +232,7 @@ if "%split_opt%"=="1" (
     echo Escribe el prefijo de salida -ej. modelo_dividido-:
     set /p output="Salida: "
     set output=!output:"=!
-    llama-gguf-split.exe --split "!input!" "!output!"
+    llama-gguf-split --split "!input!" "!output!"
 ) else if "%split_opt%"=="2" (
     echo.
     echo Arrastra el PRIMER archivo dividido -ej. archivo-00001-of-00005.gguf-:
@@ -274,7 +241,7 @@ if "%split_opt%"=="1" (
     echo Escribe el nombre final del archivo -ej. modelo_unido.gguf-:
     set /p output="Salida: "
     set output=!output:"=!
-    llama-gguf-split.exe --merge "!input!" "!output!"
+    llama-gguf-split --merge "!input!" "!output!"
 ) else (
     echo Opcion invalida.
 )
