@@ -1,3 +1,36 @@
+::[Bat To Exe Converter]
+::
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCyDJGyX8VAjFDFbTRWXNWX6Kbcd5uz0086ItUMRW+M7a7P39pWjAa4w2nXYWZos23t3mcUNCx5KQielZxkxu31DuimnFvPRgAzzQ1id2kc8Gmh1uGrTgyV1adBn+g==
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF+5
+::cxAkpRVqdFKZSjk=
+::cBs/ulQjdF+5
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpCI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCyDJGyX8VAjFDFbTRWXNWX6Kbcd5uz0086ItUMRW+M7a7P39pWjAa4w2nXYWZos23t3mcUNCx5KQielZxkxu31DuimnFvPRgAzzQ1id2mc8Gmh1qmLejSw+cp1tgsZj
+::YB416Ek+ZG8=
+::
+::
+::978f952a14a936cc963da21a135fa983
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
@@ -53,7 +86,7 @@ goto menu
 where llama-cli.exe >nul 2>nul
 if !errorlevel! neq 0 (
     echo [ADVERTENCIA] No se encontro 'llama-cli' en el sistema.
-    echo Probablemente necesites ejecutar la opcion 1 (Instalar) primero.
+    echo Probablemente necesites ejecutar la opcion 1 -Instalar- primero.
     pause
     goto menu
 )
@@ -230,16 +263,16 @@ if "%split_opt%"=="1" (
     echo Arrastra el archivo GGUF original:
     set /p input="Entrada: "
     set input=!input:"=!
-    echo Escribe el prefijo de salida (ej. modelo_dividido):
+    echo Escribe el prefijo de salida -ej. modelo_dividido-:
     set /p output="Salida: "
     set output=!output:"=!
     llama-gguf-split.exe --split "!input!" "!output!"
 ) else if "%split_opt%"=="2" (
     echo.
-    echo Arrastra el PRIMER archivo dividido (ej. archivo-00001-of-00005.gguf):
+    echo Arrastra el PRIMER archivo dividido -ej. archivo-00001-of-00005.gguf-:
     set /p input="Primera parte: "
     set input=!input:"=!
-    echo Escribe el nombre final del archivo (ej. modelo_unido.gguf):
+    echo Escribe el nombre final del archivo -ej. modelo_unido.gguf-:
     set /p output="Salida: "
     set output=!output:"=!
     llama-gguf-split.exe --merge "!input!" "!output!"
