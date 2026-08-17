@@ -13,6 +13,7 @@ Este README está escrito en español. Si prefieres la versión en inglés, se p
 - Ejecución de inferencias locales con ejemplos y notebooks.
 - Soporte para ajustar parámetros de inferencia (temperatura, top_k, top_p, etc.).
 - Plantillas para despliegue en servidores locales y contenedores.
+- Script Universal en `.bat` para gestionar todas las herramientas nativas de llama.cpp en Windows (dentro de `Universal-BAT-Script/`).
 
 ## Requisitos
 
@@ -92,6 +93,7 @@ Contribuciones son bienvenidas: abre un issue describiendo tu propuesta y crea u
 - ./llamamanager/        - código principal
 - ./scripts/             - scripts de conveniencia (descarga, conversiones, deploy)
 - ./examples/            - prompts y notebooks de ejemplo
+- ./Universal-BAT-Script/ - gestor universal interactivo (.bat) para Windows
 - requirements.txt       - dependencias de Python
 - config.example.yaml    - ejemplo de configuración
 
