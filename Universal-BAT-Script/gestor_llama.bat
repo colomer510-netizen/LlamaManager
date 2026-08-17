@@ -28,13 +28,13 @@ echo.
 
 if "!opcion_actual!"=="1" ( echo ^> [X] 1. Instalar / Actualizar llama.cpp ^< ) else ( echo   [ ] 1. Instalar / Actualizar llama.cpp )
 echo.
-if "!opcion_actual!"=="2" ( echo ^> [X] 2. Iniciar Chat en Terminal (llama cli) ^< ) else ( echo   [ ] 2. Iniciar Chat en Terminal (llama cli) )
-if "!opcion_actual!"=="3" ( echo ^> [X] 3. Iniciar Servidor Web (llama serve) ^< ) else ( echo   [ ] 3. Iniciar Servidor Web (llama serve) )
+if "!opcion_actual!"=="2" ( echo ^> [X] 2. Iniciar Chat en Terminal -llama cli- ^< ) else ( echo   [ ] 2. Iniciar Chat en Terminal -llama cli- )
+if "!opcion_actual!"=="3" ( echo ^> [X] 3. Iniciar Servidor Web -llama serve- ^< ) else ( echo   [ ] 3. Iniciar Servidor Web -llama serve- )
 echo.
-if "!opcion_actual!"=="4" ( echo ^> [X] 4. Benchmark de Rendimiento (llama bench) ^< ) else ( echo   [ ] 4. Benchmark de Rendimiento (llama bench) )
-if "!opcion_actual!"=="5" ( echo ^> [X] 5. Cuantizar un modelo (llama quantize) ^< ) else ( echo   [ ] 5. Cuantizar un modelo (llama quantize) )
-if "!opcion_actual!"=="6" ( echo ^> [X] 6. Generar Matriz de Importancia (llama-imatrix) ^< ) else ( echo   [ ] 6. Generar Matriz de Importancia (llama-imatrix) )
-if "!opcion_actual!"=="7" ( echo ^> [X] 7. Dividir/Unir GGUF (llama-gguf-split) ^< ) else ( echo   [ ] 7. Dividir/Unir GGUF (llama-gguf-split) )
+if "!opcion_actual!"=="4" ( echo ^> [X] 4. Benchmark de Rendimiento -llama bench- ^< ) else ( echo   [ ] 4. Benchmark de Rendimiento -llama bench- )
+if "!opcion_actual!"=="5" ( echo ^> [X] 5. Cuantizar un modelo -llama quantize- ^< ) else ( echo   [ ] 5. Cuantizar un modelo -llama quantize- )
+if "!opcion_actual!"=="6" ( echo ^> [X] 6. Generar Matriz de Importancia -llama-imatrix- ^< ) else ( echo   [ ] 6. Generar Matriz de Importancia -llama-imatrix- )
+if "!opcion_actual!"=="7" ( echo ^> [X] 7. Dividir/Unir GGUF -llama-gguf-split- ^< ) else ( echo   [ ] 7. Dividir/Unir GGUF -llama-gguf-split- )
 echo.
 if "!opcion_actual!"=="8" ( echo ^> [X] 8. Salir ^< ) else ( echo   [ ] 8. Salir )
 echo =================================================================
