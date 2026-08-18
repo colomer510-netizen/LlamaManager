@@ -92,7 +92,7 @@ func runChat(w http.ResponseWriter, r *http.Request) {
 
 	// Escribir script bat para evitar problemas de comillas en Windows
 	batPath := "run_chat.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --color -i\npause\n", exePath, req.Model, threads)
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 -i\npause\n", exePath, req.Model, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
 	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)
