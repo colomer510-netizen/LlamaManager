@@ -59,6 +59,7 @@ func getModels(w http.ResponseWriter, r *http.Request) {
 // Estructura para recibir la petición de ejecución
 type runRequest struct {
 	Model string `json:"model"`
+	Port  string `json:"port"`
 }
 
 func runChat(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +135,13 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	batPath := "run_server.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --port 8080\npause\n", exePath, req.Model, threads)
+	
+	port := req.Port
+	if port == "" {
+		port = "8080"
+	}
+	
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --port %s\npause\n", exePath, req.Model, threads, port)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
 	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)

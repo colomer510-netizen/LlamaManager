@@ -126,12 +126,17 @@
             <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8;">
                 ¿Tu modelo está en otra carpeta? Ingresa la ruta:
             </p>
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                <input type="text" id="custom-dir" placeholder="D:\OLLAMA AI\GGUF" style="margin-bottom: 0;">
-                <button onclick="scanDir()" style="margin-bottom: 0; width: auto; padding: 0 1rem;">🔍 Buscar</button>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="custom-dir" placeholder="Ej: D:\Modelos\GGUF" value="D:\OLLAMA AI\GGUF">
+                <button onclick="scanDir()" style="width: auto;">🔍 Buscar</button>
             </div>
 
-            <button onclick="startServer()">▶ Iniciar Servidor (API)</button>
+            <div class="input-group" style="margin-top: 1rem;">
+                <label>Puerto para el Servidor API:</label>
+                <input type="number" id="server-port" placeholder="8080" value="8080" style="width: 100px;">
+            </div>
+
+            <button class="btn-primary" style="margin-top: 1rem;" onclick="startServer()">▶ Iniciar Servidor (API)</button>
             <button onclick="startChat()">💬 Iniciar Chat (Terminal)</button>
             <button onclick="runBenchmark()">⚙️ Testear Rendimiento</button>
         </div>
@@ -222,19 +227,23 @@
 
         function startServer() {
             const model = document.getElementById('model-select').value;
-            if(!model) return alert('Por favor, selecciona o busca un modelo primero.');
-            logConsole("⏳ Iniciando servidor local con: " + model.split('\\').pop());
+            if(!model) {
+                logConsole("⚠️ Por favor selecciona un modelo primero.");
+                return;
+            }
+            let port = document.getElementById('server-port').value || '8080';
+            logConsole(`⏳ Iniciando servidor local en el puerto ${port} con: ${model.split('\\').pop()}`);
             
             fetch('/api/run/server', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ model: model })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: model, port: port })
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    logConsole("✅ Servidor iniciado. ¡Abre http://127.0.0.1:8080 en tu navegador!");
-                    window.open('http://127.0.0.1:8080', '_blank');
+                    logConsole(`✅ Servidor iniciado. ¡Abre http://127.0.0.1:${port} en tu navegador!`);
+                    window.open(`http://127.0.0.1:${port}`, '_blank');
                 } else {
                     logConsole("❌ Error iniciando servidor: " + data.error);
                 }
