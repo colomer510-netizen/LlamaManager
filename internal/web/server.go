@@ -89,24 +89,25 @@ type runRequest struct {
 	Port  string `json:"port"`
 }
 
-// Helper para lanzar el bat intentando usar una pestaña de Windows Terminal
-func launchBat(batPath string) error {
-	// Obtener el directorio actual para indicarle a la nueva pestaña dónde buscar
+// Helper para lanzar comandos directamente en la terminal sin escribir archivos .bat
+func launchCommand(title, command string) error {
 	cwd, err := os.Getwd()
 	if err != nil {
 		cwd = "."
 	}
 
-	// Intentar usar Windows Terminal para abrir en una nueva pestaña
-	// -d define el directorio de inicio de esa pestaña
-	cmd := exec.Command("wt", "-w", "0", "new-tab", "-d", cwd, "cmd", "/c", batPath)
+	// Comando completo que se ejecutará en cmd
+	fullCommand := fmt.Sprintf("title %s && %s", title, command)
+
+	// Intentar usar Windows Terminal
+	cmd := exec.Command("wt", "-w", "0", "new-tab", "-d", cwd, "cmd", "/c", fullCommand)
 	err = cmd.Start()
 	if err == nil {
-		return nil // Éxito abriendo la pestaña
+		return nil
 	}
 	
-	// Fallback: Si no hay Windows Terminal, usamos el start tradicional en ventana separada
-	cmd = exec.Command("cmd", "/c", "start", "/min", batPath)
+	// Fallback a ventana separada
+	cmd = exec.Command("cmd", "/c", "start", title, "cmd", "/c", fullCommand)
 	return cmd.Start()
 }
 
@@ -145,12 +146,10 @@ func runChat(w http.ResponseWriter, r *http.Request) {
 		ctxSize = 32768
 	}
 
-	// Escribir script bat para evitar problemas de comillas en Windows
-	batPath := "run_chat.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c %d -t %d -ngl 0 -cnv\npause\n", exePath, req.Model, ctxSize, threads)
-	os.WriteFile(batPath, []byte(batContent), 0755)
+	// Ejecutar directamente el comando sin archivos .bat
+	command := fmt.Sprintf("\"%s\" -m \"%s\" -c %d -t %d -ngl %d -cnv && pause", exePath, req.Model, ctxSize, threads, conf.GPULayers)
 
-	err := launchBat(batPath)
+	err := launchCommand("LlamaManager_Chat", command)
 	
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
@@ -201,11 +200,10 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 		ctxSize = 32768
 	}
 
-	batPath := "run_server.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c %d -t %d -ngl 0 --port %s\npause\n", exePath, req.Model, ctxSize, threads, port)
-	os.WriteFile(batPath, []byte(batContent), 0755)
+	// Ejecutar directamente el comando sin archivos .bat
+	command := fmt.Sprintf("\"%s\" -m \"%s\" -c %d -t %d -ngl %d --port %s && pause", exePath, req.Model, ctxSize, threads, conf.GPULayers, port)
 
-	err := launchBat(batPath)
+	err := launchCommand("LlamaManager_Server", command)
 	
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})

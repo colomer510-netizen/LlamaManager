@@ -174,6 +174,7 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('tab-launcher')">🚀 Lanzador</button>
+        <button class="tab-btn" onclick="switchTab('tab-chat')">💬 Chat</button>
         <button class="tab-btn" onclick="switchTab('tab-settings')">⚙️ Configuraciones</button>
         <button class="tab-btn" onclick="switchTab('tab-tools')">🛠️ Herramientas</button>
     </div>
@@ -192,8 +193,23 @@
             </div>
             
             <div class="flex-row" style="margin-top: 1.5rem;">
-                <button onclick="startChat()">💬 Iniciar Chat (Interactivo)</button>
-                <button onclick="startServer()">🌐 Iniciar Servidor (API)</button>
+                <button onclick="startServerAndChat()">💬 Iniciar y Abrir Chat</button>
+                <button onclick="startServer()">🌐 Solo Iniciar Servidor</button>
+                <button onclick="stopServer()" class="btn-danger" style="margin-left: 0.5rem; background-color: #f38ba8; color: #11111b; width: auto;">🛑 Detener</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo 1.5: Chat (NUEVO) -->
+    <div id="tab-chat" class="tab-content">
+        <div class="card" style="display: flex; flex-direction: column; height: 50vh;">
+            <h2>Chat Nativo</h2>
+            <div id="chat-messages" style="flex: 1; overflow-y: auto; background-color: #11111b; border: 1px solid #45475a; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px;">
+                <div style="color: #a6adc8; text-align: center;">Inicia el servidor en el Lanzador para conversar aquí.</div>
+            </div>
+            <div class="flex-row" style="margin-bottom: 0;">
+                <input type="text" id="chat-input" placeholder="Escribe tu mensaje a Llama..." style="flex: 1; margin-bottom: 0;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" style="width: auto; margin-bottom: 0;">Enviar</button>
             </div>
         </div>
     </div>
@@ -266,23 +282,22 @@
         }
 
         // Obtener Configuración Inicial
-        function loadSettings() {
-            fetch('/api/settings')
-                .then(res => res.json())
-                .then(data => {
-                    if(data.model_path) document.getElementById('set-model-path').value = data.model_path;
-                    if(data.api_port) document.getElementById('set-port').value = data.api_port;
-                    if(data.context_size) document.getElementById('set-context').value = data.context_size;
-                    if(data.gpu_layers !== undefined) document.getElementById('set-gpu').value = data.gpu_layers;
-                    
-                    // Una vez que tenemos la ruta de configuración, cargamos los modelos
-                    loadModels(data.model_path);
-                })
-                .catch(err => logConsole("❌ Error cargando ajustes: " + err));
+        async function loadSettings() {
+            try {
+                const data = await window.go.main.App.LoadSettings();
+                if(data.model_path) document.getElementById('set-model-path').value = data.model_path;
+                if(data.api_port) document.getElementById('set-port').value = data.api_port;
+                if(data.context_size) document.getElementById('set-context').value = data.context_size;
+                if(data.gpu_layers !== undefined) document.getElementById('set-gpu').value = data.gpu_layers;
+                
+                loadModels(data.model_path);
+            } catch(err) {
+                logConsole("❌ Error cargando ajustes: " + err);
+            }
         }
 
         // Guardar Configuración
-        function saveSettings() {
+        async function saveSettings() {
             const data = {
                 model_path: document.getElementById('set-model-path').value,
                 api_port: document.getElementById('set-port').value,
@@ -290,62 +305,56 @@
                 gpu_layers: parseInt(document.getElementById('set-gpu').value) || 0
             };
             
-            fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
+            try {
+                const res = await window.go.main.App.SaveSettings(data);
                 if(res.success) {
                     logConsole("✅ Configuración guardada correctamente.");
                     loadModels(data.model_path);
                 } else {
                     logConsole("❌ Error guardando: " + res.error);
                 }
-            });
+            } catch(err) {
+                logConsole("❌ Error: " + err);
+            }
         }
 
         // Cargar modelos
-        function loadModels(dir = "") {
+        async function loadModels(dir = "") {
             const select = document.getElementById('model-select');
             select.innerHTML = '<option value="">Buscando modelos...</option>';
             
-            let url = '/api/models';
-            if (dir) {
-                url += '?dir=' + encodeURIComponent(dir);
+            try {
+                const models = await window.go.main.App.GetModels(dir);
+                select.innerHTML = '';
+                if(models && models.length > 0) {
+                    models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m;
+                        opt.textContent = m.split('\\').pop() || m;
+                        select.appendChild(opt);
+                    });
+                    logConsole(`✅ Se encontraron ${models.length} modelos en la ruta.`);
+                } else {
+                    select.innerHTML = '<option value="">No se encontraron .gguf</option>';
+                    logConsole("⚠️ No se encontraron modelos en la ruta especificada.");
+                }
+            } catch (err) {
+                logConsole("❌ Error buscando modelos: " + err);
             }
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    select.innerHTML = '';
-                    if(data.models && data.models.length > 0) {
-                        data.models.forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m;
-                            opt.textContent = m.split('\\').pop() || m;
-                            select.appendChild(opt);
-                        });
-                        logConsole(`✅ Se encontraron ${data.models.length} modelos en la ruta.`);
-                    } else {
-                        select.innerHTML = '<option value="">No se encontraron .gguf</option>';
-                        logConsole("⚠️ No se encontraron modelos en la ruta especificada.");
-                    }
-                })
-                .catch(err => logConsole("❌ Error buscando modelos: " + err));
         }
 
         // Cargar Hardware
-        fetch('/api/hardware')
-            .then(res => res.json())
-            .then(data => {
+        async function fetchHardware() {
+            try {
+                const data = await window.go.main.App.GetHardware();
                 if(!data.error) {
-                    document.getElementById('hw-cpu').textContent = data.cpu_model;
-                    document.getElementById('hw-threads').textContent = data.logical_cores;
-                    document.getElementById('hw-ram').textContent = data.total_ram_gb + ' GB';
+                    document.getElementById('hw-cpu').textContent = data.cpu;
+                    document.getElementById('hw-threads').textContent = data.logicalCores;
+                    document.getElementById('hw-ram').textContent = data.ramGB + ' GB';
                 }
-            });
+            } catch(e) {}
+        }
+        fetchHardware();
 
         // Consola de Logs
         function logConsole(msg) {
@@ -354,101 +363,145 @@
             document.getElementById('console-container').scrollTop = out.scrollHeight;
         }
 
-        // Lanzar Servidor API
-        function startServer() {
+        // Iniciar Servidor
+        async function startServer() {
             const model = document.getElementById('model-select').value;
             if(!model) return logConsole("⚠️ Por favor selecciona un modelo primero.");
             
-            logConsole(`⏳ Iniciando servidor local con: ${model.split('\\').pop()}`);
+            const port = document.getElementById('set-port').value || '8080';
+            logConsole(`⏳ Iniciando motor Llama (Oculto) con: ${model.split('\\').pop()}`);
             
-            fetch('/api/run/server', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: model }) // El backend lee el puerto de la config
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    const port = document.getElementById('set-port').value || '8080';
-                    logConsole(`✅ Servidor iniciado. ¡Abre http://127.0.0.1:${port} en tu navegador!`);
-                    setTimeout(() => window.open(`http://127.0.0.1:${port}`, '_blank'), 1500);
-                } else {
-                    logConsole("❌ Error iniciando servidor: " + data.error);
+            try {
+                const res = await window.go.main.App.StartLlama(model, port);
+                if(!res.success) {
+                    logConsole("❌ Error: " + res.error);
                 }
-            })
-            .catch(err => logConsole("❌ Error de red: " + err));
+            } catch(err) {
+                logConsole("❌ Error: " + err);
+            }
         }
 
-        // Lanzar Chat Interactivo
-        function startChat() {
-            const model = document.getElementById('model-select').value;
-            if(!model) return logConsole("⚠️ Por favor selecciona un modelo primero.");
-            
-            logConsole("⏳ Abriendo chat interactivo en nueva consola (-cnv)...");
-
-            fetch('/api/run/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ model: model })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    logConsole("✅ Consola de chat abierta exitosamente.");
-                } else {
-                    logConsole("❌ Error iniciando chat: " + data.error);
-                }
-            })
-            .catch(err => logConsole("❌ Error de red: " + err));
+        async function startServerAndChat() {
+            await startServer();
+            switchTab('tab-chat');
         }
+
+        async function stopServer() {
+            try {
+                await window.go.main.App.StopLlama();
+            } catch(e) {}
+        }
+
+        // Lógica del Chat UI
+        let chatHistory = [];
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            input.value = '';
+            appendBubble('user', text);
+            chatHistory.push({role: "user", content: text});
+            
+            const port = document.getElementById('set-port').value || '8080';
+            appendBubble('assistant', 'Escribiendo...', 'loading-bubble');
+            
+            try {
+                const response = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        messages: chatHistory,
+                        stream: false
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading-bubble').remove();
+                
+                if(data.choices && data.choices.length > 0) {
+                    const reply = data.choices[0].message.content;
+                    appendBubble('assistant', reply);
+                    chatHistory.push({role: "assistant", content: reply});
+                } else {
+                    appendBubble('assistant', 'Error de la IA: Sin respuesta válida.');
+                }
+            } catch(e) {
+                document.getElementById('loading-bubble')?.remove();
+                appendBubble('assistant', '❌ Error conectando al servidor. Asegúrate de iniciarlo en el Lanzador.');
+            }
+        }
+
+        function appendBubble(role, text, id='') {
+            const box = document.getElementById('chat-messages');
+            const bubble = document.createElement('div');
+            bubble.style.padding = '0.8rem 1rem';
+            bubble.style.borderRadius = '12px';
+            bubble.style.maxWidth = '80%';
+            bubble.style.lineHeight = '1.4';
+            if(id) bubble.id = id;
+            
+            if(role === 'user') {
+                bubble.style.backgroundColor = '#89b4fa';
+                bubble.style.color = '#11111b';
+                bubble.style.alignSelf = 'flex-end';
+            } else {
+                bubble.style.backgroundColor = '#313244';
+                bubble.style.color = '#cdd6f4';
+                bubble.style.alignSelf = 'flex-start';
+            }
+            
+            bubble.innerText = text;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // Suscribirse a logs del servidor Wails
+        window.onload = () => {
+            if (window.runtime) {
+                window.runtime.EventsOn("server-log", (msg) => {
+                    logConsole(msg);
+                });
+            }
+        };
 
         // Apagar Servidor
         function shutdown() {
-            if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la conexión.')) return;
-            logConsole("🔌 Apagando el motor de LlamaManager...");
-            fetch('/api/shutdown', { method: 'POST' })
-            .then(() => {
-                logConsole("✅ Motor apagado con éxito. Ya puedes cerrar esta pestaña.");
-                document.body.style.opacity = '0.5';
-                document.body.style.pointerEvents = 'none';
-            })
-            .catch(() => logConsole("✅ Motor apagado con éxito."));
+            if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la aplicación.')) return;
+            logConsole("🔌 Apagando LlamaManager...");
+            window.runtime.Quit();
         }
 
         // Instalación Automática
-        function autoInstall() {
+        async function autoInstall() {
             logConsole("⏳ Conectando con GitHub para buscar la última versión...");
-            fetch('/api/autoinstall', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    logConsole("✅ ¡Éxito! " + data.msg);
+            try {
+                const res = await window.go.main.App.AutoInstallBinaries();
+                if(res.success) {
+                    logConsole("✅ ¡Éxito! " + res.msg);
                 } else {
-                    logConsole("❌ Error: " + data.error);
+                    logConsole("❌ Error: " + res.error);
                 }
-            })
-            .catch(err => logConsole("❌ Error de red: " + err));
+            } catch(err) {
+                logConsole("❌ Error: " + err);
+            }
         }
 
         // Instalación Manual
-        function installBinaries() {
+        async function installBinaries() {
             const path = document.getElementById('zip-path').value;
             if(!path) return logConsole('⚠️ Por favor, ingresa la ruta del .zip');
             logConsole("⏳ Iniciando extracción del archivo ZIP: " + path);
-            fetch('/api/install', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ path: path })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
+            try {
+                const res = await window.go.main.App.InstallLocalBinaries(path);
+                if(res.success) {
                     logConsole("✅ Binarios instalados correctamente en bin/");
                 } else {
-                    logConsole("❌ Error instalando: " + data.error);
+                    logConsole("❌ Error instalando: " + res.error);
                 }
-            })
-            .catch(err => logConsole("❌ Error de red: " + err));
+            } catch(err) {
+                logConsole("❌ Error: " + err);
+            }
         }
 
         // Inicializar

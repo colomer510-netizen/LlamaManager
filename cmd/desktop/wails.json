@@ -1,0 +1,10 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "LlamaManager",
+  "outputfilename": "LlamaManager",
+  "wailsjsdir": "./frontend",
+  "author": {
+    "name": "colomer510-netizen",
+    "email": "245951520+colomer510-netizen@users.noreply.github.com"
+  }
+}

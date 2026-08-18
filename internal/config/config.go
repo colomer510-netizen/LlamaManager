@@ -10,6 +10,7 @@ type Settings struct {
 	ModelPath   string `json:"model_path"`
 	APIPort     string `json:"api_port"`
 	ContextSize int    `json:"context_size"`
+	GPULayers   int    `json:"gpu_layers"`
 	ForceCPU    bool   `json:"force_cpu"`
 }
 
@@ -24,6 +25,7 @@ func DefaultSettings() Settings {
 		ModelPath:   "",
 		APIPort:     "8080",
 		ContextSize: 32768,
+		GPULayers:   0,
 		ForceCPU:    false,
 	}
 }
