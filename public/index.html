@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama Manager Web</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --surface: #313244;
+            --text: #cdd6f4;
+            --accent: #89b4fa;
+            --accent-hover: #b4befe;
+            --danger: #f38ba8;
+            --success: #a6e3a1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            color: var(--accent-hover);
+        }
+
+        select, input, button {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            border: 1px solid #45475a;
+            background-color: #181825;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: #11111b;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .hardware-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #45475a;
+        }
+        
+        #console-container {
+            margin-top: 2rem;
+            background-color: #11111b;
+            border-radius: 8px;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            border: 1px solid #45475a;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Llama Manager Web</h1>
+        <p>Gestor Inteligente y Ligero para Modelos GGUF</p>
+    </header>
+
+    <div class="grid">
+        <!-- Panel 1: Lanzador de Modelos -->
+        <div class="card">
+            <h2>Lanzar Modelo</h2>
+            <label for="model-select">Selecciona un archivo GGUF:</label>
+            <select id="model-select">
+                <option value="">Cargando modelos...</option>
+            </select>
+
+            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8;">
+                ¿Tu modelo está en otra carpeta? Ingresa la ruta:
+            </p>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="text" id="custom-dir" placeholder="D:\OLLAMA AI\GGUF" style="margin-bottom: 0;">
+                <button onclick="scanDir()" style="margin-bottom: 0; width: auto; padding: 0 1rem;">🔍 Buscar</button>
+            </div>
+
+            <button onclick="startServer()">▶ Iniciar Servidor (API)</button>
+            <button onclick="startChat()">💬 Iniciar Chat (Terminal)</button>
+            <button onclick="runBenchmark()">⚙️ Testear Rendimiento</button>
+        </div>
+
+        <!-- Panel 2: Instalador y Hardware -->
+        <div class="card">
+            <h2>Sistema y Binarios</h2>
+            
+            <div id="hardware-info">
+                <div class="hardware-stat"><span>CPU:</span> <span id="hw-cpu">Analizando...</span></div>
+                <div class="hardware-stat"><span>Hilos:</span> <span id="hw-threads">-</span></div>
+                <div class="hardware-stat"><span>RAM:</span> <span id="hw-ram">-</span></div>
+            </div>
+
+            <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1rem;">Instalar Binarios (Vulkan Fix)</h3>
+            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8;">
+                Descarga e instala la última versión de CPU automáticamente desde GitHub.
+            </p>
+            <button class="btn-danger" style="margin-bottom: 1rem;" onclick="autoInstall()">📥 Descarga Automática (Recomendado)</button>
+
+            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8; border-top: 1px solid #45475a; padding-top: 1rem;">
+                O si ya lo descargaste, pega la ruta de tu .zip:
+            </p>
+            <input type="text" id="zip-path" placeholder="C:\Users\...\llama-b10488-bin-win-cpu-x64.zip">
+            <button onclick="installBinaries()">Extraer Localmente</button>
+        </div>
+    </div>
+
+    <div id="console-container">
+        <div id="console-output">Esperando acciones...</div>
+    </div>
+
+    <script>
+        // Cargar modelos al iniciar
+        function loadModels(dir = "") {
+            const select = document.getElementById('model-select');
+            select.innerHTML = '<option value="">Buscando modelos...</option>';
+            
+            fetch('/api/models' + (dir ? '?dir=' + encodeURIComponent(dir) : ''))
+                .then(res => res.json())
+                .then(data => {
+                    select.innerHTML = '';
+                    if(data.models && data.models.length > 0) {
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m;
+                            opt.textContent = m.split('\\').pop() || m;
+                            select.appendChild(opt);
+                        });
+                        logConsole(`✅ Se encontraron ${data.models.length} modelos en la carpeta seleccionada.`);
+                    } else {
+                        select.innerHTML = '<option value="">No se encontraron .gguf</option>';
+                        logConsole("⚠️ No se encontraron modelos en la ruta especificada.");
+                    }
+                })
+                .catch(err => logConsole("❌ Error buscando modelos: " + err));
+        }
+
+        loadModels();
+
+        function scanDir() {
+            const dir = document.getElementById('custom-dir').value;
+            if(!dir) return alert("Ingresa una ruta de carpeta válida.");
+            logConsole("🔍 Buscando en: " + dir);
+            loadModels(dir);
+        }
+
+        // Cargar Hardware
+        fetch('/api/hardware')
+            .then(res => res.json())
+            .then(data => {
+                if(!data.error) {
+                    document.getElementById('hw-cpu').textContent = data.cpu_model;
+                    document.getElementById('hw-threads').textContent = data.logical_cores;
+                    document.getElementById('hw-ram').textContent = data.total_ram_gb + ' GB';
+                }
+            });
+
+        function logConsole(msg) {
+            const out = document.getElementById('console-output');
+            out.innerHTML += `<div>${msg}</div>`;
+            document.getElementById('console-container').scrollTop = out.scrollHeight;
+        }
+
+        function startServer() {
+            const model = document.getElementById('model-select').value;
+            if(!model) return alert('Por favor, selecciona o busca un modelo primero.');
+            logConsole("⏳ Iniciando servidor local con: " + model.split('\\').pop());
+            
+            fetch('/api/run/server', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ model: model })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    logConsole("✅ Servidor iniciado. ¡Abre http://127.0.0.1:8080 en tu navegador!");
+                    window.open('http://127.0.0.1:8080', '_blank');
+                } else {
+                    logConsole("❌ Error iniciando servidor: " + data.error);
+                }
+            })
+            .catch(err => logConsole("❌ Error de red: " + err));
+        }
+
+        function startChat() {
+            const model = document.getElementById('model-select').value;
+            if(!model) return alert('Por favor, selecciona o busca un modelo primero.');
+            logConsole("⏳ Abriendo chat interactivo en nueva consola...");
+
+            fetch('/api/run/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ model: model })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    logConsole("✅ Consola de chat abierta.");
+                } else {
+                    logConsole("❌ Error iniciando chat: " + data.error);
+                }
+            })
+            .catch(err => logConsole("❌ Error de red: " + err));
+        }
+
+        function runBenchmark() {
+            logConsole("Lanzando test de estrés...");
+        }
+
+        function autoInstall() {
+            logConsole("⏳ Conectando con GitHub para buscar la última versión...");
+            fetch('/api/autoinstall', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    logConsole("✅ ¡Éxito! " + data.msg);
+                } else {
+                    logConsole("❌ Error: " + data.error);
+                }
+            })
+            .catch(err => logConsole("❌ Error de red: " + err));
+        }
+
+        function installBinaries() {
+            const path = document.getElementById('zip-path').value;
+            if(!path) return alert('Por favor, ingresa la ruta del .zip');
+            logConsole("⏳ Iniciando extracción del archivo ZIP: " + path);
+            fetch('/api/install', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: path })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    logConsole("✅ Binarios instalados correctamente en LlamaManager-Go/bin/");
+                } else {
+                    logConsole("❌ Error instalando: " + data.error);
+                }
+            })
+            .catch(err => logConsole("❌ Error de red: " + err));
+        }
+    </script>
+</body>
+</html>

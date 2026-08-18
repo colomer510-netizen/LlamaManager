@@ -1,7 +1,0 @@
-fastapi
-uvicorn[standard]
-psutil
-websockets
-watchdog
-pystray
-pillow

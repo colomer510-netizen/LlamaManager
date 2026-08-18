@@ -1,111 +1,83 @@
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+# LlamaManager 🦙
 
-# LlamaManager
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0.0-blue)
+![Plataforma](https://img.shields.io/badge/Plataforma-Windows%20%7C%20Linux%20%7C%20macOS-success)
+![Lenguaje](https://img.shields.io/badge/Lenguaje-Go%20%7C%20HTML%20%7C%20JS-00ADD8)
 
-LlamaManager es una herramienta para gestionar, desplegar y probar modelos LLaMA y variantes afines (p. ej. Llama 2). Proporciona utilidades para descargar pesos, configurar entornos, ejecutar inferencias locales y orquestar despliegues de pruebas.
+**LlamaManager** es un administrador avanzado y ligero para orquestar herramientas, chats y modelos locales de `llama.cpp`. 
+Anteriormente escrito en PowerShell estricto para Windows, ahora ha evolucionado a una **arquitectura en Golang con una Interfaz Web nativa (Dashboard)**, haciéndolo 100% multiplataforma, infinitamente más escalable y resistente a fallos de hardware.
 
-Este README está escrito en español. Si prefieres la versión en inglés, se puede añadir en una futura actualización.
+---
 
-## Características
+## ✨ Características Principales (V2.0)
 
-- Descarga y gestión de pesos de modelos LLaMA.
-- Scripts de instalación y configuración de entornos (conda/venv/Docker).
-- Ejecución de inferencias locales con ejemplos y notebooks.
-- Soporte para ajustar parámetros de inferencia (temperatura, top_k, top_p, etc.).
-- Plantillas para despliegue en servidores locales y contenedores.
-- Script Universal en `.bat` para gestionar todas las herramientas nativas de llama.cpp en Windows (dentro de `Universal-BAT-Script/`).
+* 🌐 **Interfaz Gráfica Web (GUI):** Olvídate de la consola negra. Al abrir el gestor, se levanta un servidor local ultra ligero que lanza una hermosa interfaz en tu navegador (consumiendo casi 0 RAM extra).
+* 🛡️ **Vulkan Crash Fix (Instalador Automático):** ¿Tu GPU o drivers colapsan con el error `vkQueueSubmit: Invalid queue`? El gestor incluye un instalador automático que descarga e instala los binarios de `llama.cpp` en su versión de CPU Pura desde GitHub, esquivando totalmente a tu tarjeta de video defectuosa.
+* 🧠 **Autoconfiguración Inteligente:** Detecta automáticamente tu cantidad de Memoria RAM y Núcleos de CPU para inyectar los mejores parámetros (`-c` y `-t`) antes de arrancar tu modelo.
+* ⚙️ **Benchmark Diagnóstico Oficial:** Integración oculta con `llama-bench` para torturar tu CPU y GPU, midiendo con exactitud los Tokens por Segundo y determinando si tu gráfica es apta para correr IAs.
+* 📂 **Buscador Dinámico de GGUF:** Escanea tu carpeta actual o cualquier ruta personalizada en tu disco duro para encontrar y lanzar tus modelos `.gguf` con un clic.
 
-## Requisitos
+---
 
-- Python 3.8+ (se recomienda 3.10+)
-- Git
-- (Opcional) CUDA 11.x / drivers compatibles para aceleración con GPU
-- (Opcional) Docker, si desea usar contenedores
+## 🚀 Instalación y Uso
 
-Asegúrate de tener suficiente espacio en disco para los pesos del modelo (varios GB según la variante).
+### Prerrequisitos
+Solo necesitas tener [Go instalado](https://go.dev/dl/) si deseas compilarlo desde el código fuente.
 
-## Instalación rápida
-
+### Opción 1: Ejecutar desde el código (Desarrolladores)
 1. Clona el repositorio:
-
+   ```bash
    git clone https://github.com/colomer510-netizen/LlamaManager.git
    cd LlamaManager
+   ```
+2. Instala las dependencias y corre el programa:
+   ```bash
+   go mod tidy
+   go run ./cmd/llama-manager
+   ```
 
-2. Crea un entorno virtual y activa:
+### Opción 2: Compilar el ejecutable
+Si quieres empaquetarlo para compartirlo como un `.exe` (Windows) o un binario en Linux:
+```bash
+# Para Windows
+go build -o llama-manager.exe ./cmd/llama-manager
 
-   python -m venv .venv
-   source .venv/bin/activate  # macOS / Linux
-   .\.venv\Scripts\activate   # Windows (PowerShell)
+# Para Linux/macOS
+go build -o llama-manager ./cmd/llama-manager
+```
+Solo haz doble clic en el ejecutable resultante y tu navegador web se abrirá automáticamente.
 
-3. Instala dependencias:
+---
 
-   pip install -r requirements.txt
+## 🛠️ Estructura del Proyecto
 
-4. Configura variables opcionales en `config.example.yaml` y crea `config.yaml` con tus valores.
+El código ha sido refactorizado usando Clean Architecture en Go:
 
-## Uso
+```text
+LlamaManager/
+├── cmd/
+│   └── llama-manager/
+│       └── main.go           # Punto de entrada de la aplicación
+├── internal/
+│   ├── hardware/             # Detección de CPU, RAM, y motor de Configuración
+│   ├── models/               # Escáner de extensiones .gguf
+│   ├── process/              # Lanzador de subprocesos (Server/CLI)
+│   ├── tester/               # Sistema de testeo y benchmark
+│   └── web/                  # Servidor HTTP y enrutador API REST
+├── public/
+│   └── index.html            # Interfaz Web (Vanilla HTML/CSS/JS)
+└── go.mod                    # Dependencias de Go
+```
 
-- Listar modelos disponibles (local/config):
+---
 
-  python -m llamamanager list-models
+## 💡 ¿Por qué Golang en lugar de PowerShell?
+El proyecto original (`Universal-BAT-Script`) cumplió su propósito, pero PowerShell está limitado principalmente a ecosistemas Windows y su manejo de subprocesos asíncronos y servidores web es engorroso. Al migrar a **Go**, ganamos:
+1. **Multiplataforma Real:** El mismo código se compila para Linux, Mac y Windows.
+2. **Servidor HTTP Nativo:** Podemos servir una API y una página web sin dependencias externas (Ni Node.js, ni Python).
+3. **Manejo Seguro de Errores:** Evitamos los crasheos silenciosos de la terminal CMD.
 
-- Descargar un modelo:
+---
 
-  python -m llamamanager download --model llama-2-7b
-
-- Ejecutar una inferencia de ejemplo:
-
-  python -m llamamanager infer --model llama-2-7b --prompt "Hola, ¿cómo estás?"
-
-- Levantar servicio local (ejemplo con FastAPI):
-
-  python -m llamamanager serve --model llama-2-7b --host 0.0.0.0 --port 8000
-
-(Estos comandos son ejemplos; consulta la sección `Referencia de comandos` o ejecutables en `./scripts` para la lista completa.)
-
-## Configuración
-
-Copia `config.example.yaml` a `config.yaml` y ajusta las opciones:
-
-- model_storage_path: Ruta donde se guardarán los pesos descargados.
-- default_model: Modelo por defecto para inferencias.
-- gpu: true/false para habilitar uso de GPU cuando esté disponible.
-- api_key: (opcional) claves para integraciones externas.
-
-## Desarrollo
-
-- Ejecuta tests:
-
-  pytest
-
-- Formatea el código con:
-
-  black .
-
-- Linting:
-
-  flake8
-
-Contribuciones son bienvenidas: abre un issue describiendo tu propuesta y crea un pull request cuando estés listo.
-
-## Estructura del repositorio (resumen)
-
-- ./llamamanager/        - código principal
-- ./scripts/             - scripts de conveniencia (descarga, conversiones, deploy)
-- ./examples/            - prompts y notebooks de ejemplo
-- ./Universal-BAT-Script/ - gestor universal interactivo (.bat) para Windows
-- requirements.txt       - dependencias de Python
-- config.example.yaml    - ejemplo de configuración
-
-Si tu copia difiere, ajusta esta sección para reflejar la estructura real.
-
-## Licencia
-
-This project is licensed under the GNU General Public License v3.0 — see the LICENSE file for details.
-Copyright (C) 2026 colomer510-netizen
-
-## Contacto
-
-Mantenedor: colomer510-netizen
-
-Para preguntas, abre un issue en el repositorio.
+## 🤝 Contribuciones
+¡Las contribuciones, issues y pull requests son bienvenidos! Si encuentras un bug o tienes una idea para mejorar LlamaManager, siéntete libre de abrir un issue.
