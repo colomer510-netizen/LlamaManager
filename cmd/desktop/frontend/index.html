@@ -155,13 +155,14 @@
         
         #console-container {
             margin-top: 2rem;
-            background-color: #11111b;
+            background-color: #000000; /* Más parecido a un CMD real */
             border-radius: 8px;
             padding: 1rem;
-            height: 250px;
+            height: 350px; /* Más alto para ver mejor los procesos */
             overflow-y: auto;
-            font-family: monospace;
+            font-family: 'Consolas', 'Courier New', monospace;
             border: 1px solid #45475a;
+            color: #a6e3a1; /* Letras verdes estilo hacker */
         }
     </style>
 </head>
@@ -195,6 +196,7 @@
             <div class="flex-row" style="margin-top: 1.5rem;">
                 <button onclick="startServerAndChat()">💬 Iniciar y Abrir Chat</button>
                 <button onclick="startServer()">🌐 Solo Iniciar Servidor</button>
+                <button id="btn-open-web" onclick="openWebUI()" style="display: none; background-color: #a6e3a1; color: #11111b; width: auto; margin-left: 0.5rem;">🌍 Abrir Web UI</button>
                 <button onclick="stopServer()" class="btn-danger" style="margin-left: 0.5rem; background-color: #f38ba8; color: #11111b; width: auto;">🛑 Detener</button>
             </div>
         </div>
@@ -375,6 +377,8 @@
                 const res = await window.go.main.App.StartLlama(model, port);
                 if(!res.success) {
                     logConsole("❌ Error: " + res.error);
+                } else {
+                    document.getElementById('btn-open-web').style.display = 'block';
                 }
             } catch(err) {
                 logConsole("❌ Error: " + err);
@@ -389,7 +393,15 @@
         async function stopServer() {
             try {
                 await window.go.main.App.StopLlama();
+                document.getElementById('btn-open-web').style.display = 'none';
             } catch(e) {}
+        }
+        
+        function openWebUI() {
+            const port = document.getElementById('set-port').value || '8080';
+            const url = `http://127.0.0.1:${port}`;
+            logConsole(`🌍 Abriendo versión Web en el navegador: ${url}`);
+            window.runtime.BrowserOpenURL(url);
         }
 
         // Lógica del Chat UI
