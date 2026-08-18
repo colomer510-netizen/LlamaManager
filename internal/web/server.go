@@ -91,7 +91,7 @@ func runChat(w http.ResponseWriter, r *http.Request) {
 
 	// Escribir script bat para evitar problemas de comillas en Windows
 	batPath := "run_chat.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 2048 -t %d -ngl 0 --color -i\npause\n", exePath, req.Model, threads)
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --color -i\npause\n", exePath, req.Model, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
 	cmd := exec.Command("cmd", "/c", "start", batPath)
@@ -133,7 +133,7 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	batPath := "run_server.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 2048 -t %d -ngl 0 --port 8080\npause\n", exePath, req.Model, threads)
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --port 8080\npause\n", exePath, req.Model, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
 	cmd := exec.Command("cmd", "/c", "start", batPath)
