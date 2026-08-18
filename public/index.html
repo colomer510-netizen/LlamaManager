@@ -157,6 +157,10 @@
             </p>
             <input type="text" id="zip-path" placeholder="C:\Users\...\llama-b10488-bin-win-cpu-x64.zip">
             <button onclick="installBinaries()">Extraer Localmente</button>
+
+            <div style="margin-top: 2rem; border-top: 1px solid #45475a; padding-top: 1rem;">
+                <button class="btn-danger" style="background-color: #f38ba8; color: #11111b; width: 100%;" onclick="shutdown()">🔌 Apagar Gestor LlamaManager</button>
+            </div>
         </div>
     </div>
 
@@ -261,6 +265,18 @@
 
         function runBenchmark() {
             logConsole("Lanzando test de estrés...");
+        }
+
+        function shutdown() {
+            if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la conexión.')) return;
+            logConsole("🔌 Apagando el motor de LlamaManager...");
+            fetch('/api/shutdown', { method: 'POST' })
+            .then(() => {
+                logConsole("✅ Motor apagado con éxito. Ya puedes cerrar esta pestaña.");
+                document.body.style.opacity = '0.5';
+                document.body.style.pointerEvents = 'none';
+            })
+            .catch(() => logConsole("✅ Motor apagado con éxito."));
         }
 
         function autoInstall() {

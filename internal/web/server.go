@@ -24,6 +24,7 @@ func StartWebServer() {
 	http.HandleFunc("/api/autoinstall", autoInstallBinaries)
 	http.HandleFunc("/api/run/chat", runChat)
 	http.HandleFunc("/api/run/server", runServer)
+	http.HandleFunc("/api/shutdown", shutdownServer)
 	
 	fmt.Println("=====================================================")
 	fmt.Println("🚀 Servidor Web de LlamaManager iniciado en el puerto 3000")
@@ -170,4 +171,14 @@ func openBrowser(url string) {
 	if err != nil {
 		fmt.Println("No se pudo abrir el navegador automáticamente.")
 	}
+}
+
+func shutdownServer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": "Apagando el gestor..."})
+	
+	// Salir del programa limpiamente
+	go func() {
+		os.Exit(0)
+	}()
 }
