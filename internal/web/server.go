@@ -94,7 +94,7 @@ func runChat(w http.ResponseWriter, r *http.Request) {
 	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --color -i\npause\n", exePath, req.Model, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
-	cmd := exec.Command("cmd", "/c", "start", batPath)
+	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)
 	err := cmd.Start()
 	
 	if err != nil {
@@ -136,7 +136,7 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --port 8080\npause\n", exePath, req.Model, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
-	cmd := exec.Command("cmd", "/c", "start", batPath)
+	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)
 	err := cmd.Start()
 	
 	if err != nil {
