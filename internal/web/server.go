@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"llamamanager/internal/config"
 	"llamamanager/internal/hardware"
 	"llamamanager/internal/models"
 )
@@ -25,6 +26,7 @@ func StartWebServer() {
 	http.HandleFunc("/api/run/chat", runChat)
 	http.HandleFunc("/api/run/server", runServer)
 	http.HandleFunc("/api/shutdown", shutdownServer)
+	http.HandleFunc("/api/settings", handleSettings)
 	
 	fmt.Println("=====================================================")
 	fmt.Println("🚀 Servidor Web de LlamaManager iniciado en el puerto 3000")
@@ -40,12 +42,37 @@ func StartWebServer() {
 	}
 }
 
+func handleSettings(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method == http.MethodGet {
+		json.NewEncoder(w).Encode(config.LoadSettings())
+		return
+	} else if r.Method == http.MethodPost {
+		var s config.Settings
+		if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
+			return
+		}
+		if err := config.SaveSettings(s); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": err.Error()})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{"error": "Method not allowed"})
+}
+
 func getModels(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	
 	dir := r.URL.Query().Get("dir")
 	if dir == "" {
-		dir = "." // Por defecto busca en la carpeta actual
+		conf := config.LoadSettings()
+		dir = conf.ModelPath
+		if dir == "" {
+			dir = "."
+		}
 	}
 
 	foundModels, err := models.FindGGUFModels(dir)
@@ -60,6 +87,27 @@ func getModels(w http.ResponseWriter, r *http.Request) {
 type runRequest struct {
 	Model string `json:"model"`
 	Port  string `json:"port"`
+}
+
+// Helper para lanzar el bat intentando usar una pestaña de Windows Terminal
+func launchBat(batPath string) error {
+	// Obtener el directorio actual para indicarle a la nueva pestaña dónde buscar
+	cwd, err := os.Getwd()
+	if err != nil {
+		cwd = "."
+	}
+
+	// Intentar usar Windows Terminal para abrir en una nueva pestaña
+	// -d define el directorio de inicio de esa pestaña
+	cmd := exec.Command("wt", "-w", "0", "new-tab", "-d", cwd, "cmd", "/c", batPath)
+	err = cmd.Start()
+	if err == nil {
+		return nil // Éxito abriendo la pestaña
+	}
+	
+	// Fallback: Si no hay Windows Terminal, usamos el start tradicional en ventana separada
+	cmd = exec.Command("cmd", "/c", "start", "/min", batPath)
+	return cmd.Start()
 }
 
 func runChat(w http.ResponseWriter, r *http.Request) {
@@ -91,13 +139,18 @@ func runChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	conf := config.LoadSettings()
+	ctxSize := conf.ContextSize
+	if ctxSize == 0 {
+		ctxSize = 32768
+	}
+
 	// Escribir script bat para evitar problemas de comillas en Windows
 	batPath := "run_chat.bat"
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 -i\npause\n", exePath, req.Model, threads)
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Chat\n\"%%~dp0%s\" -m \"%s\" -c %d -t %d -ngl 0 -cnv\npause\n", exePath, req.Model, ctxSize, threads)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
-	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)
-	err := cmd.Start()
+	err := launchBat(batPath)
 	
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
@@ -134,18 +187,25 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batPath := "run_server.bat"
-	
+	conf := config.LoadSettings()
 	port := req.Port
 	if port == "" {
-		port = "8080"
+		port = conf.APIPort
+		if port == "" {
+			port = "8080"
+		}
 	}
 	
-	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c 8192 -t %d -ngl 0 --port %s\npause\n", exePath, req.Model, threads, port)
+	ctxSize := conf.ContextSize
+	if ctxSize == 0 {
+		ctxSize = 32768
+	}
+
+	batPath := "run_server.bat"
+	batContent := fmt.Sprintf("@echo off\ntitle LlamaManager Server\n\"%%~dp0%s\" -m \"%s\" -c %d -t %d -ngl 0 --port %s\npause\n", exePath, req.Model, ctxSize, threads, port)
 	os.WriteFile(batPath, []byte(batContent), 0755)
 
-	cmd := exec.Command("cmd", "/c", "start", "/min", batPath)
-	err := cmd.Start()
+	err := launchBat(batPath)
 	
 	if err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})

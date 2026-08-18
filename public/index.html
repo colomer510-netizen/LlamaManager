@@ -40,10 +40,49 @@
             font-weight: 800;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #45475a;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #a6adc8;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            background-color: rgba(137, 180, 250, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .card {
@@ -51,23 +90,38 @@
             padding: 1.5rem;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            margin-bottom: 1.5rem;
         }
 
         .card h2 {
             margin-bottom: 1rem;
             font-size: 1.2rem;
             color: var(--accent-hover);
+            border-bottom: 1px solid #45475a;
+            padding-bottom: 0.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #a6adc8;
+            font-size: 0.9rem;
         }
 
         select, input, button {
             width: 100%;
             padding: 0.8rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             border-radius: 6px;
             border: 1px solid #45475a;
             background-color: #181825;
             color: var(--text);
             font-size: 1rem;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 1rem;
         }
 
         button {
@@ -86,7 +140,11 @@
         .btn-danger {
             background-color: var(--danger);
         }
-        
+
+        .btn-danger:hover {
+            background-color: #eba0ac;
+        }
+
         .hardware-stat {
             display: flex;
             justify-content: space-between;
@@ -100,7 +158,7 @@
             background-color: #11111b;
             border-radius: 8px;
             padding: 1rem;
-            height: 300px;
+            height: 250px;
             overflow-y: auto;
             font-family: monospace;
             border: 1px solid #45475a;
@@ -110,76 +168,149 @@
 <body>
 
     <header>
-        <h1>Llama Manager Web</h1>
-        <p>Gestor Inteligente y Ligero para Modelos GGUF</p>
+        <h1>Llama Manager V3</h1>
+        <p style="color: #a6adc8;">Gestor Inteligente, Ligero y Persistente para Modelos GGUF</p>
     </header>
 
-    <div class="grid">
-        <!-- Panel 1: Lanzador de Modelos -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-launcher')">🚀 Lanzador</button>
+        <button class="tab-btn" onclick="switchTab('tab-settings')">⚙️ Configuraciones</button>
+        <button class="tab-btn" onclick="switchTab('tab-tools')">🛠️ Herramientas</button>
+    </div>
+
+    <!-- Módulo 1: Lanzador -->
+    <div id="tab-launcher" class="tab-content active">
         <div class="card">
             <h2>Lanzar Modelo</h2>
-            <label for="model-select">Selecciona un archivo GGUF:</label>
-            <select id="model-select">
-                <option value="">Cargando modelos...</option>
-            </select>
-
-            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8;">
-                ¿Tu modelo está en otra carpeta? Ingresa la ruta:
-            </p>
-            <div style="display: flex; gap: 0.5rem;">
-                <input type="text" id="custom-dir" placeholder="Ej: D:\Modelos\GGUF" value="D:\OLLAMA AI\GGUF">
-                <button onclick="scanDir()" style="width: auto;">🔍 Buscar</button>
-            </div>
-
-            <div class="input-group" style="margin-top: 1rem;">
-                <label>Puerto para el Servidor API:</label>
-                <input type="number" id="server-port" placeholder="8080" value="8080" style="width: 100px;">
-            </div>
-
-            <button class="btn-primary" style="margin-top: 1rem;" onclick="startServer()">▶ Iniciar Servidor (API)</button>
-            <button onclick="startChat()">💬 Iniciar Chat (Terminal)</button>
-            <button onclick="runBenchmark()">⚙️ Testear Rendimiento</button>
-        </div>
-
-        <!-- Panel 2: Instalador y Hardware -->
-        <div class="card">
-            <h2>Sistema y Binarios</h2>
             
-            <div id="hardware-info">
-                <div class="hardware-stat"><span>CPU:</span> <span id="hw-cpu">Analizando...</span></div>
-                <div class="hardware-stat"><span>Hilos:</span> <span id="hw-threads">-</span></div>
-                <div class="hardware-stat"><span>RAM:</span> <span id="hw-ram">-</span></div>
+            <label for="model-select">Selecciona un modelo (.gguf):</label>
+            <div class="flex-row">
+                <select id="model-select" style="flex: 1; margin-bottom: 0;">
+                    <option value="">Cargando modelos...</option>
+                </select>
+                <button onclick="loadModels()" style="width: auto; margin-bottom: 0;" title="Recargar lista">🔄</button>
             </div>
-
-            <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1rem;">Instalar Binarios (Vulkan Fix)</h3>
-            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8;">
-                Descarga e instala la última versión de CPU automáticamente desde GitHub.
-            </p>
-            <button class="btn-danger" style="margin-bottom: 1rem;" onclick="autoInstall()">📥 Descarga Automática (Recomendado)</button>
-
-            <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: #a6adc8; border-top: 1px solid #45475a; padding-top: 1rem;">
-                O si ya lo descargaste, pega la ruta de tu .zip:
-            </p>
-            <input type="text" id="zip-path" placeholder="C:\Users\...\llama-b10488-bin-win-cpu-x64.zip">
-            <button onclick="installBinaries()">Extraer Localmente</button>
-
-            <div style="margin-top: 2rem; border-top: 1px solid #45475a; padding-top: 1rem;">
-                <button class="btn-danger" style="background-color: #f38ba8; color: #11111b; width: 100%;" onclick="shutdown()">🔌 Apagar Gestor LlamaManager</button>
+            
+            <div class="flex-row" style="margin-top: 1.5rem;">
+                <button onclick="startChat()">💬 Iniciar Chat (Interactivo)</button>
+                <button onclick="startServer()">🌐 Iniciar Servidor (API)</button>
             </div>
         </div>
     </div>
 
+    <!-- Módulo 2: Configuraciones -->
+    <div id="tab-settings" class="tab-content">
+        <div class="card">
+            <h2>Ajustes Globales</h2>
+            
+            <label for="set-model-path">Ruta base de modelos (Carpeta donde están los .gguf):</label>
+            <input type="text" id="set-model-path" placeholder="Ej: D:\Modelos\GGUF">
+
+            <div class="flex-row">
+                <div style="flex: 1;">
+                    <label for="set-port">Puerto por defecto de la API:</label>
+                    <input type="number" id="set-port" placeholder="8080">
+                </div>
+                <div style="flex: 1;">
+                    <label for="set-context">Tamaño del Contexto (Tokens):</label>
+                    <input type="number" id="set-context" placeholder="32768" value="32768">
+                </div>
+            </div>
+
+            <button onclick="saveSettings()" style="background-color: var(--success); color: #11111b; margin-top: 1rem;">💾 Guardar Cambios</button>
+        </div>
+    </div>
+
+    <!-- Módulo 3: Herramientas -->
+    <div id="tab-tools" class="tab-content">
+        <div class="card">
+            <h2>Información del Sistema</h2>
+            <div id="hardware-info" style="margin-bottom: 1.5rem;">
+                <div class="hardware-stat"><span>CPU:</span> <span id="hw-cpu">Analizando...</span></div>
+                <div class="hardware-stat"><span>Hilos Lógicos:</span> <span id="hw-threads">-</span></div>
+                <div class="hardware-stat"><span>Memoria RAM:</span> <span id="hw-ram">-</span></div>
+            </div>
+
+            <h2>Gestión de Binarios (llama.cpp)</h2>
+            <p style="font-size: 0.9rem; color: #a6adc8; margin-bottom: 1rem;">Descarga automáticamente los binarios más recientes de GitHub o extrae un .zip local si ya lo tienes.</p>
+            
+            <button class="btn-danger" style="background-color: #cba6f7; color: #11111b; margin-bottom: 0.5rem;" onclick="autoInstall()">📥 Descarga Automática (GitHub)</button>
+            
+            <div class="flex-row" style="margin-top: 1rem;">
+                <input type="text" id="zip-path" placeholder="Ruta a tu .zip descargado (opcional)" style="margin-bottom: 0; flex: 1;">
+                <button onclick="installBinaries()" style="width: auto; margin-bottom: 0;">Extraer .zip</button>
+            </div>
+            
+            <div style="margin-top: 2.5rem;">
+                <button class="btn-danger" style="width: 100%;" onclick="shutdown()">🔌 Apagar Gestor LlamaManager</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consola -->
     <div id="console-container">
-        <div id="console-output">Esperando acciones...</div>
+        <div id="console-output" style="color: #a6e3a1;">> Sistema inicializado. Esperando acciones...</div>
     </div>
 
     <script>
-        // Cargar modelos al iniciar
+        // Funcionalidad de Tabs
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Obtener Configuración Inicial
+        function loadSettings() {
+            fetch('/api/settings')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.model_path) document.getElementById('set-model-path').value = data.model_path;
+                    if(data.api_port) document.getElementById('set-port').value = data.api_port;
+                    if(data.context_size) document.getElementById('set-context').value = data.context_size;
+                    
+                    // Una vez que tenemos la ruta de configuración, cargamos los modelos
+                    loadModels(data.model_path);
+                })
+                .catch(err => logConsole("❌ Error cargando ajustes: " + err));
+        }
+
+        // Guardar Configuración
+        function saveSettings() {
+            const data = {
+                model_path: document.getElementById('set-model-path').value,
+                api_port: document.getElementById('set-port').value,
+                context_size: parseInt(document.getElementById('set-context').value) || 32768
+            };
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.success) {
+                    logConsole("✅ Configuración guardada correctamente.");
+                    loadModels(data.model_path);
+                } else {
+                    logConsole("❌ Error guardando: " + res.error);
+                }
+            });
+        }
+
+        // Cargar modelos
         function loadModels(dir = "") {
             const select = document.getElementById('model-select');
             select.innerHTML = '<option value="">Buscando modelos...</option>';
             
-            fetch('/api/models' + (dir ? '?dir=' + encodeURIComponent(dir) : ''))
+            let url = '/api/models';
+            if (dir) {
+                url += '?dir=' + encodeURIComponent(dir);
+            }
+
+            fetch(url)
                 .then(res => res.json())
                 .then(data => {
                     select.innerHTML = '';
@@ -190,22 +321,13 @@
                             opt.textContent = m.split('\\').pop() || m;
                             select.appendChild(opt);
                         });
-                        logConsole(`✅ Se encontraron ${data.models.length} modelos en la carpeta seleccionada.`);
+                        logConsole(`✅ Se encontraron ${data.models.length} modelos en la ruta.`);
                     } else {
                         select.innerHTML = '<option value="">No se encontraron .gguf</option>';
                         logConsole("⚠️ No se encontraron modelos en la ruta especificada.");
                     }
                 })
                 .catch(err => logConsole("❌ Error buscando modelos: " + err));
-        }
-
-        loadModels();
-
-        function scanDir() {
-            const dir = document.getElementById('custom-dir').value;
-            if(!dir) return alert("Ingresa una ruta de carpeta válida.");
-            logConsole("🔍 Buscando en: " + dir);
-            loadModels(dir);
         }
 
         // Cargar Hardware
@@ -219,31 +341,31 @@
                 }
             });
 
+        // Consola de Logs
         function logConsole(msg) {
             const out = document.getElementById('console-output');
-            out.innerHTML += `<div>${msg}</div>`;
+            out.innerHTML += `<div>> ${msg}</div>`;
             document.getElementById('console-container').scrollTop = out.scrollHeight;
         }
 
+        // Lanzar Servidor API
         function startServer() {
             const model = document.getElementById('model-select').value;
-            if(!model) {
-                logConsole("⚠️ Por favor selecciona un modelo primero.");
-                return;
-            }
-            let port = document.getElementById('server-port').value || '8080';
-            logConsole(`⏳ Iniciando servidor local en el puerto ${port} con: ${model.split('\\').pop()}`);
+            if(!model) return logConsole("⚠️ Por favor selecciona un modelo primero.");
+            
+            logConsole(`⏳ Iniciando servidor local con: ${model.split('\\').pop()}`);
             
             fetch('/api/run/server', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: model, port: port })
+                body: JSON.stringify({ model: model }) // El backend lee el puerto de la config
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
+                    const port = document.getElementById('set-port').value || '8080';
                     logConsole(`✅ Servidor iniciado. ¡Abre http://127.0.0.1:${port} en tu navegador!`);
-                    window.open(`http://127.0.0.1:${port}`, '_blank');
+                    setTimeout(() => window.open(`http://127.0.0.1:${port}`, '_blank'), 1500);
                 } else {
                     logConsole("❌ Error iniciando servidor: " + data.error);
                 }
@@ -251,10 +373,12 @@
             .catch(err => logConsole("❌ Error de red: " + err));
         }
 
+        // Lanzar Chat Interactivo
         function startChat() {
             const model = document.getElementById('model-select').value;
-            if(!model) return alert('Por favor, selecciona o busca un modelo primero.');
-            logConsole("⏳ Abriendo chat interactivo en nueva consola...");
+            if(!model) return logConsole("⚠️ Por favor selecciona un modelo primero.");
+            
+            logConsole("⏳ Abriendo chat interactivo en nueva consola (-cnv)...");
 
             fetch('/api/run/chat', {
                 method: 'POST',
@@ -264,7 +388,7 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    logConsole("✅ Consola de chat abierta.");
+                    logConsole("✅ Consola de chat abierta exitosamente.");
                 } else {
                     logConsole("❌ Error iniciando chat: " + data.error);
                 }
@@ -272,10 +396,7 @@
             .catch(err => logConsole("❌ Error de red: " + err));
         }
 
-        function runBenchmark() {
-            logConsole("Lanzando test de estrés...");
-        }
-
+        // Apagar Servidor
         function shutdown() {
             if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la conexión.')) return;
             logConsole("🔌 Apagando el motor de LlamaManager...");
@@ -288,6 +409,7 @@
             .catch(() => logConsole("✅ Motor apagado con éxito."));
         }
 
+        // Instalación Automática
         function autoInstall() {
             logConsole("⏳ Conectando con GitHub para buscar la última versión...");
             fetch('/api/autoinstall', { method: 'POST' })
@@ -302,9 +424,10 @@
             .catch(err => logConsole("❌ Error de red: " + err));
         }
 
+        // Instalación Manual
         function installBinaries() {
             const path = document.getElementById('zip-path').value;
-            if(!path) return alert('Por favor, ingresa la ruta del .zip');
+            if(!path) return logConsole('⚠️ Por favor, ingresa la ruta del .zip');
             logConsole("⏳ Iniciando extracción del archivo ZIP: " + path);
             fetch('/api/install', {
                 method: 'POST',
@@ -314,13 +437,16 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    logConsole("✅ Binarios instalados correctamente en LlamaManager-Go/bin/");
+                    logConsole("✅ Binarios instalados correctamente en bin/");
                 } else {
                     logConsole("❌ Error instalando: " + data.error);
                 }
             })
             .catch(err => logConsole("❌ Error de red: " + err));
         }
+
+        // Inicializar
+        loadSettings();
     </script>
 </body>
 </html>
