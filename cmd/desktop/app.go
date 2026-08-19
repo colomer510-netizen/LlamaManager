@@ -17,6 +17,7 @@ import (
 	"llamamanager/internal/config"
 	"llamamanager/internal/hardware"
 	"llamamanager/internal/models"
+	"llamamanager/internal/tools"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -77,19 +78,6 @@ func (a *App) SaveSettings(settings config.Settings) map[string]interface{} {
 	return map[string]interface{}{"success": true}
 }
 
-func resolveBinPath(exeName string) (string, error) {
-	paths := []string{
-		filepath.Join("bin", exeName),
-		filepath.Join("..", "..", "bin", exeName),
-	}
-	for _, p := range paths {
-		if _, err := os.Stat(p); err == nil {
-			abs, _ := filepath.Abs(p)
-			return abs, nil
-		}
-	}
-	return "", fmt.Errorf("No se encuentra %s en la carpeta bin", exeName)
-}
 
 func (a *App) StopLlama() {
 	if a.serverCmd != nil && a.serverCmd.Process != nil {
@@ -107,7 +95,7 @@ func (a *App) StartLlama(model string, port string) map[string]interface{} {
 	
 	a.StopLlama() // Detener si ya hay uno corriendo
 	
-	exePath, err := resolveBinPath("llama-server.exe")
+	exePath, err := tools.ResolveBinPath("llama-server.exe")
 	if err != nil {
 		return map[string]interface{}{"success": false, "error": err.Error()}
 	}
@@ -168,6 +156,9 @@ func getBinFolder() string {
 }
 
 func (a *App) InstallLocalBinaries(zipPath string) map[string]interface{} {
+	a.StopLlama()
+	exec.Command("taskkill", "/F", "/IM", "llama-server.exe").Run() // Asegurar cierre de huerfanos
+	
 	zipPath = strings.Trim(zipPath, "\"")
 	binDir := getBinFolder()
 	os.MkdirAll(binDir, os.ModePerm)
@@ -180,6 +171,9 @@ func (a *App) InstallLocalBinaries(zipPath string) map[string]interface{} {
 }
 
 func (a *App) AutoInstallBinaries() map[string]interface{} {
+	a.StopLlama()
+	exec.Command("taskkill", "/F", "/IM", "llama-server.exe").Run() // Asegurar cierre de huerfanos
+
 	resp, err := http.Get("https://api.github.com/repos/ggml-org/llama.cpp/releases/latest")
 	if err != nil {
 		return map[string]interface{}{"success": false, "error": "Error conectando a GitHub: " + err.Error()}
@@ -271,3 +265,102 @@ func unzip(src string, dest string) error {
 	}
 	return nil
 }
+
+func (a *App) CheckUpdateStatus() map[string]interface{} {
+	resp, err := http.Get("https://api.github.com/repos/ggml-org/llama.cpp/releases/latest")
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": "Error conectando a GitHub"}
+	}
+	defer resp.Body.Close()
+
+	var release struct {
+		TagName   string `json:"tag_name"`
+		Published string `json:"published_at"`
+	}
+	json.NewDecoder(resp.Body).Decode(&release)
+
+	localDate := "No instalado"
+	binDir := getBinFolder()
+	info, err := os.Stat(filepath.Join(binDir, "llama-server.exe"))
+	if err == nil {
+		localDate = info.ModTime().Format("2006-01-02 15:04:05")
+	}
+
+	return map[string]interface{}{
+		"success": true, 
+		"latestVersion": release.TagName,
+		"latestDate": release.Published,
+		"localDate": localDate,
+	}
+}
+
+func (a *App) RunMultimodalCLI() map[string]interface{} {
+	exePath, err := tools.ResolveBinPath("llama-mtmd-cli.exe")
+	if err != nil {
+		exePath, err = tools.ResolveBinPath("llama-llava-cli.exe")
+		if err != nil {
+			return map[string]interface{}{"success": false, "error": "No se encontró llama-mtmd-cli ni llama-llava-cli."}
+		}
+	}
+	
+	err = tools.RunInteractive(exePath, []string{"--help"})
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	return map[string]interface{}{"success": true}
+}
+
+func (a *App) RunQuantize() map[string]interface{} {
+	inputFile, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Selecciona el modelo GGUF original",
+		Filters: []wailsRuntime.FileFilter{{DisplayName: "GGUF", Pattern: "*.gguf"}},
+	})
+	if err != nil || inputFile == "" {
+		return map[string]interface{}{"success": false, "error": "Cancelado"}
+	}
+
+	outputFile, err := wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
+		Title: "Guardar modelo cuantizado",
+		DefaultFilename: "modelo-Q4_K_M.gguf",
+		Filters: []wailsRuntime.FileFilter{{DisplayName: "GGUF", Pattern: "*.gguf"}},
+	})
+	if err != nil || outputFile == "" {
+		return map[string]interface{}{"success": false, "error": "Cancelado"}
+	}
+
+	exePath, err := tools.ResolveBinPath("llama-quantize.exe")
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+
+	err = tools.RunInteractive(exePath, []string{inputFile, outputFile, "Q4_K_M"})
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	return map[string]interface{}{"success": true}
+}
+
+func (a *App) RunRPC() map[string]interface{} {
+	exePath, err := tools.ResolveBinPath("ggml-rpc-server.exe")
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	err = tools.RunInteractive(exePath, []string{"--host", "0.0.0.0", "--port", "50052"})
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	return map[string]interface{}{"success": true}
+}
+
+func (a *App) RunBench() map[string]interface{} {
+	exePath, err := tools.ResolveBinPath("llama-bench.exe")
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	err = tools.RunInteractive(exePath, []string{"-p", "512", "-n", "128"})
+	if err != nil {
+		return map[string]interface{}{"success": false, "error": err.Error()}
+	}
+	return map[string]interface{}{"success": true}
+}
+

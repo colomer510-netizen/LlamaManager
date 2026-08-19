@@ -33,7 +33,7 @@ func main() {
 	fmt.Println("                                                          |___/           ")
 	fmt.Println("=====================================================")
 	fmt.Println("             Llama.cpp Universal Manager             ")
-	fmt.Println("=====================================================\n")
+	fmt.Println("=====================================================")
 
 	// 3. Iniciar Backend Web
 	web.StartWebServer()

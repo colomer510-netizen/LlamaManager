@@ -6,6 +6,10 @@ export function AutoInstallBinaries() {
   return window['go']['main']['App']['AutoInstallBinaries']();
 }
 
+export function CheckUpdateStatus() {
+  return window['go']['main']['App']['CheckUpdateStatus']();
+}
+
 export function GetHardware() {
   return window['go']['main']['App']['GetHardware']();
 }
@@ -20,6 +24,22 @@ export function InstallLocalBinaries(arg1) {
 
 export function LoadSettings() {
   return window['go']['main']['App']['LoadSettings']();
+}
+
+export function RunBench() {
+  return window['go']['main']['App']['RunBench']();
+}
+
+export function RunMultimodalCLI() {
+  return window['go']['main']['App']['RunMultimodalCLI']();
+}
+
+export function RunQuantize() {
+  return window['go']['main']['App']['RunQuantize']();
+}
+
+export function RunRPC() {
+  return window['go']['main']['App']['RunRPC']();
 }
 
 export function SaveSettings(arg1) {

@@ -4,6 +4,8 @@ import {config} from '../models';
 
 export function AutoInstallBinaries():Promise<Record<string, any>>;
 
+export function CheckUpdateStatus():Promise<Record<string, any>>;
+
 export function GetHardware():Promise<Record<string, any>>;
 
 export function GetModels(arg1:string):Promise<Array<string>>;
@@ -11,6 +13,14 @@ export function GetModels(arg1:string):Promise<Array<string>>;
 export function InstallLocalBinaries(arg1:string):Promise<Record<string, any>>;
 
 export function LoadSettings():Promise<config.Settings>;
+
+export function RunBench():Promise<Record<string, any>>;
+
+export function RunMultimodalCLI():Promise<Record<string, any>>;
+
+export function RunQuantize():Promise<Record<string, any>>;
+
+export function RunRPC():Promise<Record<string, any>>;
 
 export function SaveSettings(arg1:config.Settings):Promise<Record<string, any>>;
 

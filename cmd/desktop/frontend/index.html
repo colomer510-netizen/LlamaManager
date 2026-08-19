@@ -256,15 +256,26 @@
             <h2>Gestión de Binarios (llama.cpp)</h2>
             <p style="font-size: 0.9rem; color: #a6adc8; margin-bottom: 1rem;">Descarga automáticamente los binarios más recientes de GitHub o extrae un .zip local si ya lo tienes.</p>
             
-            <button class="btn-danger" style="background-color: #cba6f7; color: #11111b; margin-bottom: 0.5rem;" onclick="autoInstall()">📥 Descarga Automática (GitHub)</button>
+            <button style="background-color: #89dceb; color: #11111b; margin-bottom: 0.5rem;" onclick="checkUpdates()">🔍 Comprobar Actualizaciones</button>
+            <button class="btn-danger" style="background-color: #cba6f7; color: #11111b; margin-bottom: 0.5rem;" onclick="autoInstall()">🚀 Descarga Automática (GitHub)</button>
             
             <div class="flex-row" style="margin-top: 1rem;">
                 <input type="text" id="zip-path" placeholder="Ruta a tu .zip descargado (opcional)" style="margin-bottom: 0; flex: 1;">
                 <button onclick="installBinaries()" style="width: auto; margin-bottom: 0;">Extraer .zip</button>
             </div>
             
+            <h2 style="margin-top: 2rem;">Ejecutores Avanzados (llama.cpp)</h2>
+            <div class="flex-row" style="flex-wrap: wrap; gap: 0.5rem;">
+                <button style="flex: 1; background-color: #fab387; color: #11111b; font-size: 0.9rem; margin-bottom: 0;" onclick="runTool('RunMultimodalCLI')">👁️ Consola Multimodal (Ex-Clip)</button>
+                <button style="flex: 1; background-color: #f9e2af; color: #11111b; font-size: 0.9rem; margin-bottom: 0;" onclick="runTool('RunQuantize')">🗜️ Cuantizar Modelo</button>
+            </div>
+            <div class="flex-row" style="flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <button style="flex: 1; background-color: #89b4fa; color: #11111b; font-size: 0.9rem; margin-bottom: 0;" onclick="runTool('RunRPC')">🌐 Nodo Clúster (RPC)</button>
+                <button style="flex: 1; background-color: #a6e3a1; color: #11111b; font-size: 0.9rem; margin-bottom: 0;" onclick="runTool('RunBench')">🚀 Benchmark</button>
+            </div>
+
             <div style="margin-top: 2.5rem;">
-                <button class="btn-danger" style="width: 100%;" onclick="shutdown()">🔌 Apagar Gestor LlamaManager</button>
+                <button class="btn-danger" style="width: 100%;" onclick="shutdown()">🛑 Apagar Gestor LlamaManager</button>
             </div>
         </div>
     </div>
@@ -397,6 +408,26 @@
             } catch(e) {}
         }
         
+        function shutdown() {
+            if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la aplicación.')) return;
+            logConsole("🔌 Apagando LlamaManager...");
+            window.runtime.Quit();
+        }
+
+        async function runTool(toolName) {
+            logConsole(`⏳ Iniciando herramienta: ${toolName}...`);
+            try {
+                const res = await window.go.main.App[toolName]();
+                if(res.success) {
+                    logConsole(`✅ Herramienta lanzada con éxito.`);
+                } else {
+                    logConsole(`❌ Operación cancelada o error: ` + res.error);
+                }
+            } catch(err) {
+                logConsole(`❌ Error interno: ` + err);
+            }
+        }
+        
         function openWebUI() {
             const port = document.getElementById('set-port').value || '8080';
             const url = `http://127.0.0.1:${port}`;
@@ -482,6 +513,22 @@
             if(!confirm('¿Estás seguro de que deseas apagar LlamaManager? Cerrará la aplicación.')) return;
             logConsole("🔌 Apagando LlamaManager...");
             window.runtime.Quit();
+        }
+
+        // Comprobar Actualizaciones
+        async function checkUpdates() {
+            logConsole("🔍 Consultando la versión más reciente en GitHub...");
+            try {
+                const res = await window.go.main.App.CheckUpdateStatus();
+                if(res.success) {
+                    logConsole(`📌 Versión local: ${res.localDate}`);
+                    logConsole(`📌 Última en GitHub: ${res.latestVersion} (${res.latestDate})`);
+                } else {
+                    logConsole("❌ Error: " + res.error);
+                }
+            } catch(err) {
+                logConsole("❌ Error: " + err);
+            }
         }
 
         // Instalación Automática

@@ -20,6 +20,7 @@ func main() {
 		Title:  "LlamaManager",
 		Width:  1024,
 		Height: 768,
+		DisableResize: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
