@@ -310,9 +310,13 @@ func runServer(w http.ResponseWriter, r *http.Request) {
 	args = append(args, "--host", "0.0.0.0", "-m", req.Model, "-c", strconv.Itoa(ctxSize), "-t", strconv.Itoa(threads), "-ngl", strconv.Itoa(conf.GPULayers), "--port", port)
 
 	cmd := exec.Command(exePath, args...)
+	cmd.Env = os.Environ()
+	if conf.GPULayers == 0 {
+		cmd.Env = append(cmd.Env, "GGML_VK_VISIBLE_DEVICES=", "CUDA_VISIBLE_DEVICES=")
+	}
 	if runtime.GOOS != "windows" {
 		cwd, _ := os.Getwd()
-		cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+filepath.Join(cwd, "bin"))
+		cmd.Env = append(cmd.Env, "LD_LIBRARY_PATH="+filepath.Join(cwd, "bin"))
 	}
 	
 	// Enviar logs del modelo a la consola web en tiempo real
