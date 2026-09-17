@@ -1,4 +1,4 @@
-# 🦙 LlamaManager V4
+# 🦙 LlamaManager V4.1
 
 **Gestor Inteligente, Ligero y Persistente para Modelos GGUF locales.**
 
@@ -6,15 +6,21 @@ LlamaManager es una interfaz y administrador de entorno diseñado para facilitar
 
 ---
 
-## ✨ Características Principales (V4)
+## 📦 Descargas Rápidas (Releases)
 
-* 🖥️ **GUI Nativa (Desktop)**: Interfaz de escritorio moderna y rápida construida con **Wails**. No dependes de un navegador web externo.
-* 💬 **Chat Integrado (Nativo)**: Conversa con la IA mediante una interfaz de "globitos" estilo ChatGPT, todo dentro de la misma aplicación.
-* 👻 **Ejecución Silenciosa**: El motor `llama-server.exe` corre 100% en segundo plano de manera invisible, sin consolas ni comandos molestos estorbando tu pantalla.
-* 🌐 **Modo Servidor Ligero**: Incluye una versión alternativa de compilación (`cmd/server`) ideal para correr en servidores headless (Linux) y acceder remotamente vía navegador web.
+En la carpeta `releases/` de este repositorio encontrarás las versiones listas para usar:
+* `LlamaManager-Windows-V4.zip` - Versión lista para Windows (Incluye scripts de arranque).
+* `LlamaManager-Linux-Ubuntu.tar.gz` - Versión lista para Ubuntu/Linux (Incluye acceso directo .desktop).
+
+---
+
+## ✨ Características Principales (V4.1)
+
+* 👻 **Arranque 100% Silencioso**: El servidor de la IA arranca en las sombras. Nunca más verás una terminal negra estorbando en tu pantalla. Todo corre de fondo.
+* 💚 **Consola Web Integrada (Novedad V4.1)**: Todos los registros (logs) del modelo y del sistema ahora se envían en tiempo real directamente a una interfaz de consola verde hacker dentro de la página web mediante tecnología Server-Sent Events (SSE).
+* 💓 **Auto-Cierre Inteligente (Heartbeat)**: Si cierras el navegador, LlamaManager detectará que te fuiste (ausencia de latido) y tras 2 minutos matará automáticamente el proceso de la IA para liberar tu memoria RAM. ¡Cero procesos zombie!
+* 🛡️ **Auto-Fallback GPU a CPU**: Si el optimizador de hardware establece `0` capas para la gráfica (GPU), LlamaManager inyecta variables de entorno protectoras (`GGML_VK_VISIBLE_DEVICES=""`, `CUDA_VISIBLE_DEVICES=""`) para desactivar Vulkan y prevenir que drivers gráficos defectuosos estrellen el sistema. 
 * 📥 **Autoinstalador Inteligente**: Capaz de buscar, descargar y extraer automáticamente los últimos binarios oficiales de `llama.cpp` directamente desde GitHub.
-* ⚙️ **Optimización Automática**: Escanea tu hardware (CPU, núcleos lógicos, RAM) para sugerir la mejor configuración de hilos.
-* 🚀 **Soporte GPU**: Configura fácilmente el uso de tu tarjeta de video (NGL - Número de capas GPU) para acelerar drásticamente las respuestas.
 
 ---
 
@@ -26,11 +32,6 @@ El proyecto sigue el estándar profesional de desarrollo en Go (*Standard Go Pro
 📁 LlamaManager/
 │
 ├── 📁 cmd/                         ← Aplicaciones compilables (Puntos de entrada)
-│   ├── 📁 desktop/                 ← 🖥️ App Nativa Windows (Wails GUI)
-│   │   ├── app.go                  ← Lógica puente (Go ↔ JS)
-│   │   ├── main.go                 ← Inicialización de la ventana nativa
-│   │   └── 📁 frontend/            ← Interfaz visual (HTML/CSS/JS)
-│   │
 │   └── 📁 server/                  ← 🌐 Servidor Web ligero (Multiplataforma)
 │       └── main.go                 
 │
@@ -41,54 +42,37 @@ El proyecto sigue el estándar profesional de desarrollo en Go (*Standard Go Pro
 │   └── 📁 web/                     ← Manejadores HTTP para la versión de Servidor
 │
 ├── 📁 public/                      ← HTML/JS de la versión web tradicional
+├── 📁 releases/                    ← Binarios compilados listos para descargar
 ├── go.mod                          ← Dependencias
 └── README.md
 ```
 
 ---
 
-## 🛠️ Requisitos Previos (Para Desarrolladores)
-
-Si deseas compilar el código fuente por ti mismo, necesitas:
+## 🔨 Instrucciones de Compilación (Si deseas compilarlo tú mismo)
 
 1. **Go 1.21** o superior instalado en tu sistema.
-2. El framework **Wails v2** instalado globalmente:
-   ```bash
-   go install github.com/wailsapp/wails/v2/cmd/wails@latest
-   ```
+2. Clona el repositorio y ejecuta:
 
----
-
-## 🔨 Instrucciones de Compilación
-
-Dependiendo de tus necesidades, LlamaManager puede compilarse de dos formas distintas:
-
-### 1. Compilar Versión Desktop Nativa (Windows)
-Esta es la versión principal con ventana propia y chat nativo.
-```powershell
-cd cmd/desktop
-wails build -clean
+### Linux
+```bash
+go build -o LlamaManager-Server cmd/server/main.go
 ```
-> El ejecutable final se generará en: `cmd/desktop/build/bin/LlamaManager.exe`
 
-### 2. Compilar Versión Servidor Web (Linux / Mac / Windows)
-Ideal para entornos remotos o servidores sin interfaz gráfica nativa.
-```powershell
-# Compilar para el sistema actual
-go build -ldflags "-s -w" -o LlamaManager-Server.exe ./cmd/server/
-
-# Compilación cruzada (Desde Windows para Linux)
-$env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags "-s -w" -o LlamaManager-Server-Linux ./cmd/server/
+### Windows (Cross-compilation desde Linux)
+```bash
+GOOS=windows GOARCH=amd64 go build -o LlamaManager-Server.exe cmd/server/main.go
 ```
 
 ---
 
 ## 🚀 Uso de la Aplicación
 
-1. **Ubicación del ejecutable:** Coloca el archivo `LlamaManager.exe` en tu carpeta deseada. La aplicación buscará (o descargará automáticamente) los archivos de `llama.cpp` en una subcarpeta llamada `bin/` junto a él.
-2. **Ajustes:** En la pestaña de *Configuraciones*, define la ruta base donde guardas tus modelos `.gguf` (ej: `D:\OLLAMA AI\GGUF`).
-3. **Lanzar:** Ve al *Lanzador*, selecciona tu modelo y haz clic en **"Iniciar y Abrir Chat"**. 
-4. El sistema iniciará en las sombras y podrás conversar fluidamente con la IA.
+1. **Ubicación del ejecutable:** Coloca el archivo `LlamaManager` (o `LlamaManager-Server.exe`) en tu carpeta deseada junto con la carpeta `public/`.
+2. **Ajustes:** En la web, ve a Configuración, define la ruta base donde guardas tus modelos `.gguf`.
+3. **Lanzar:** Selecciona tu modelo y haz clic en **"Iniciar Servidor Local"**. 
+4. El sistema iniciará en las sombras. Haz clic en "Abrir Chat" para conversar con la IA usando el puerto 8080.
+5. Al terminar, **cierra el navegador** y la aplicación liberará los recursos por sí sola.
 
 ---
 
