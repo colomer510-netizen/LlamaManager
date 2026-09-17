@@ -59,8 +59,8 @@ func BroadcastLog(msg string) {
 	}
 	globalLogBuffer.mu.Unlock()
 
-	// También imprimir en la consola del servidor (para debug)
-	fmt.Println(msg)
+	// Comentado para no imprimir en la terminal visible
+	// fmt.Println(msg)
 }
 
 // subscribe crea un canal para recibir logs en tiempo real

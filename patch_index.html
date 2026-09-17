@@ -1,0 +1,8 @@
+        // Iniciar SSE al cargar
+        window.addEventListener('load', () => {
+            setupSSE();
+            // Heartbeat: Avisarle al servidor Go que el navegador sigue abierto
+            setInterval(() => {
+                fetch('/api/heartbeat').catch(err => console.warn('Heartbeat error:', err));
+            }, 5000);
+        });

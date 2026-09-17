@@ -613,7 +613,12 @@
         }
         
         // Iniciar SSE al cargar
-        window.addEventListener('load', setupSSE);
+        window.addEventListener('load', () => {
+            setupSSE();
+            setInterval(() => {
+                fetch('/api/heartbeat').catch(err => console.warn('Heartbeat error:', err));
+            }, 5000);
+        });
 
         // Lanzar Servidor API
         function startServer() {

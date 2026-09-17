@@ -1,6 +1,7 @@
 package web
 
 import (
+    "time"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,8 +19,46 @@ import (
 )
 
 
-var activeLlamaCmd *exec.Cmd
-var activeLlamaMu sync.Mutex
+var (
+	activeLlamaCmd *exec.Cmd
+	activeLlamaMu  sync.Mutex
+	
+	lastHeartbeat   time.Time
+	heartbeatMu     sync.Mutex
+	heartbeatActive bool
+)
+
+// handleHeartbeat actualiza el timestamp de la última vez que la web nos contactó
+func handleHeartbeat(w http.ResponseWriter, r *http.Request) {
+	heartbeatMu.Lock()
+	lastHeartbeat = time.Now()
+	if !heartbeatActive {
+		heartbeatActive = true
+		go monitorHeartbeat()
+	}
+	heartbeatMu.Unlock()
+	w.WriteHeader(http.StatusOK)
+}
+
+// monitorHeartbeat cierra el servidor si cierras la pestaña del navegador
+func monitorHeartbeat() {
+	for {
+		time.Sleep(5 * time.Second)
+		heartbeatMu.Lock()
+		if time.Since(lastHeartbeat) > 15*time.Second {
+			// Matar el modelo si estaba corriendo
+			activeLlamaMu.Lock()
+			if activeLlamaCmd != nil && activeLlamaCmd.Process != nil {
+				activeLlamaCmd.Process.Kill()
+			}
+			activeLlamaMu.Unlock()
+			
+			// Cerrar el backend de Go
+			os.Exit(0)
+		}
+		heartbeatMu.Unlock()
+	}
+}
 
 func StartWebServer() {
 	// Servir archivos estáticos del frontend
@@ -42,6 +81,7 @@ func StartWebServer() {
 	http.HandleFunc("/api/settings", handleSettings)
 	http.HandleFunc("/api/agent/run_terminal", runAgentTerminal)
 	http.HandleFunc("/api/logs/stream", handleLogStream)
+http.HandleFunc("/api/heartbeat", handleHeartbeat)
 	
 	BroadcastLog("=====================================================")
 	BroadcastLog("🚀 Servidor Web de LlamaManager iniciado en el puerto 3000")
