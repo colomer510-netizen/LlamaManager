@@ -1,0 +1,41 @@
+name: llamamanager
+base: core24
+version: '4.0.0'
+summary: Gestor Inteligente para Modelos GGUF locales.
+description: |
+  LlamaManager V4. Gestor Inteligente, Ligero y Persistente para Modelos GGUF locales mediante llama.cpp.
+
+grade: stable
+confinement: strict
+
+apps:
+  llamamanager:
+    command: usr/bin/llamamanager
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+      - home
+      - removable-media
+
+parts:
+  llamamanager:
+    plugin: go
+    source: .
+    build-packages:
+      - build-essential
+      - libgtk-3-dev
+      - libwebkit2gtk-4.1-dev
+      - pkg-config
+    override-build: |
+      # Instalar Wails en el entorno de compilación de Snap
+      go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+      export PATH=$PATH:$HOME/go/bin
+      
+      # Entrar a la carpeta del proyecto desktop y compilar
+      cd cmd/desktop
+      wails build -platform linux/amd64 -clean -tags webkit2_41
+      
+      # Mover el binario generado a la ruta que Snap espera
+      mkdir -p $CRAFT_PART_INSTALL/usr/bin
+      cp build/bin/desktop $CRAFT_PART_INSTALL/usr/bin/llamamanager

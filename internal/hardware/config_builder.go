@@ -2,6 +2,7 @@ package hardware
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -14,18 +15,41 @@ type ConfigFlags struct {
 	Executable string
 }
 
-// FindLlamaExecutable busca el ejecutable correcto de llama.cpp (llama.exe, llama-cli.exe, etc)
+// FindLlamaExecutable busca el ejecutable correcto de llama.cpp (llama, llama-cli, etc)
 func FindLlamaExecutable() (string, error) {
-	// Intentamos buscar "llama", "llama-cli" en el PATH o en la carpeta local
-	candidates := []string{"llama", "llama-cli"}
-	
+	candidates := []string{"llama", "llama-cli", "llama.exe", "llama-cli.exe"}
+	searchDirs := []string{"bin", filepath.Join("..", "..", "bin"), filepath.Join("build", "bin", "bin"), "."}
+
+	for _, dir := range searchDirs {
+		for _, candidate := range candidates {
+			p := filepath.Join(dir, candidate)
+			if _, err := os.Stat(p); err == nil {
+				abs, _ := filepath.Abs(p)
+				return abs, nil
+			}
+		}
+		if entries, err := os.ReadDir(dir); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					for _, candidate := range candidates {
+						subP := filepath.Join(dir, entry.Name(), candidate)
+						if _, err := os.Stat(subP); err == nil {
+							abs, _ := filepath.Abs(subP)
+							return abs, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
 	for _, candidate := range candidates {
 		path, err := exec.LookPath(candidate)
 		if err == nil {
 			return path, nil
 		}
 	}
-	return "", fmt.Errorf("no se encontró ningún ejecutable de llama.cpp en el PATH")
+	return "", fmt.Errorf("no se encontró ningún ejecutable de llama.cpp en bin/ ni en el PATH")
 }
 
 // BuildOptimalConfig calcula los mejores flags basándose en los recursos actuales y prueba la GPU
@@ -85,7 +109,7 @@ func BuildOptimalConfig(modelPath string, forceCPU bool, customGPU int, customCt
 }
 
 func testGPU(executable string, modelPath string) bool {
-	// Si el binario es el nuevo unificado ("llama.exe"), necesita el comando "cli"
+	// Si el binario es el nuevo unificado ("llama.exe" o "llama"), necesita el comando "cli"
 	args := []string{}
 	base := filepath.Base(strings.ToLower(executable))
 	if base == "llama.exe" || base == "llama" {

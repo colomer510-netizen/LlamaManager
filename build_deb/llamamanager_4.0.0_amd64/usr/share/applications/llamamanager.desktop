@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=LlamaManager Web
+Comment=Arranca el servidor local de IA
+Exec=gnome-terminal -- llamamanager
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=Utility;Development;

@@ -158,12 +158,10 @@
             background-color: #11111b;
             border-radius: 8px;
             padding: 1rem;
-            height: 300px;
+            height: 200px;
             overflow-y: auto;
             font-family: monospace;
-            font-size: 0.85rem;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-            resize: vertical;
+            border: 1px solid #45475a;
         }
 
         /* Estilos del Agente Chat */
@@ -382,7 +380,7 @@
                 </div>
                 <div style="flex: 1;">
                     <label for="set-context">Tamaño del Contexto (Tokens):</label>
-                    <input type="number" id="set-context" placeholder="4096" value="4096">
+                    <input type="number" id="set-context" placeholder="32768" value="32768">
                 </div>
                 <div style="flex: 1;">
                     <label for="set-gpu">Capas de GPU (NGL):</label>
@@ -512,7 +510,7 @@
             const data = {
                 model_path: document.getElementById('set-model-path').value.trim(),
                 api_port: document.getElementById('set-port').value.trim() || "8080",
-                context_size: parseInt(document.getElementById('set-context').value) || 4096,
+                context_size: parseInt(document.getElementById('set-context').value) || 32768,
                 gpu_layers: parseInt(document.getElementById('set-gpu').value) || 0,
                 rpc_servers: document.getElementById('set-rpc').value.trim()
             };
@@ -583,37 +581,12 @@
                 }
             });
 
-        // Consola de Logs (Actualizada para SSE)
+        // Consola de Logs
         function logConsole(msg) {
             const out = document.getElementById('console-output');
-            let color = '#a6e3a1'; // Verde por defecto
-            if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('❌')) {
-                color = '#f38ba8'; // Rojo para errores
-            } else if (msg.includes('[llama]')) {
-                color = '#cdd6f4'; // Gris claro para logs del modelo
-            } else if (msg.includes('⚠️')) {
-                color = '#f9e2af'; // Amarillo para advertencias
-            }
-            out.innerHTML += `<div style="color: ${color};">> ${msg}</div>`;
-            document.getElementById('console-container').scrollTop = document.getElementById('console-container').scrollHeight;
+            out.innerHTML += `<div>> ${msg}</div>`;
+            document.getElementById('console-container').scrollTop = out.scrollHeight;
         }
-
-        // Conectar al sistema de logs en tiempo real (SSE)
-        function setupSSE() {
-            const evtSource = new EventSource('/api/logs/stream');
-            evtSource.onmessage = function(event) {
-                logConsole(event.data);
-            };
-            evtSource.onerror = function(err) {
-                console.error("SSE Error:", err);
-                evtSource.close();
-                // Intentar reconectar después de 3 segundos
-                setTimeout(setupSSE, 3000);
-            };
-        }
-        
-        // Iniciar SSE al cargar
-        window.addEventListener('load', setupSSE);
 
         // Lanzar Servidor API
         function startServer() {
@@ -936,25 +909,6 @@
         }
 
         // Lanzar Chat Interactivo
-        
-        // Optimizar Hardware
-        function optimizeHardware() {
-            logConsole("⏳ Optimizando parámetros para tu hardware...");
-            fetch('/api/hardware/optimize', { method: 'POST' })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    document.getElementById('set-context').value = data.context_size;
-                    document.getElementById('set-gpu').value = data.gpu_layers;
-                    logConsole("✅ " + data.msg);
-                    saveSettings(); // guardamos y recargamos
-                } else {
-                    logConsole("❌ Error optimizando: " + data.error);
-                }
-            })
-            .catch(err => logConsole("❌ Error de red: " + err));
-        }
-
         function startChat() {
             const model = document.getElementById('model-select').value;
             if(!model) return logConsole("⚠️ Por favor selecciona un modelo primero.");

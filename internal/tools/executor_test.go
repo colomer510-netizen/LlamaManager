@@ -8,38 +8,46 @@ import (
 )
 
 func TestResolveBinPath(t *testing.T) {
-	// Preparar un entorno simulado para la prueba
 	tmpDir := t.TempDir()
 	binDir := filepath.Join(tmpDir, "bin")
-	err := os.MkdirAll(binDir, 0755)
-	if err != nil {
-		t.Fatalf("Falló la creación de dir temp: %v", err)
-	}
+	subBinDir := filepath.Join(binDir, "sub-release")
+	os.MkdirAll(subBinDir, 0755)
 	
-	fakeExe := filepath.Join(binDir, "fake-tool.exe")
-	err = os.WriteFile(fakeExe, []byte("dummy"), 0755)
-	if err != nil {
-		t.Fatalf("Falló la creación de archivo temp: %v", err)
-	}
+	// Crear un binario nativo de linux y uno en subcarpeta
+	nativeLinuxTool := filepath.Join(binDir, "llama-server")
+	subFolderTool := filepath.Join(subBinDir, "llama-cli")
+	
+	os.WriteFile(nativeLinuxTool, []byte("dummy binary"), 0755)
+	os.WriteFile(subFolderTool, []byte("dummy binary 2"), 0755)
 
-	// Como ResolveBinPath usa rutas relativas al CWD, cambiaremos el CWD temporalmente
 	originalCWD, _ := os.Getwd()
 	os.Chdir(tmpDir)
 	defer os.Chdir(originalCWD)
 
-	resolved, err := ResolveBinPath("fake-tool.exe")
+	// 1. Buscar binario directo
+	resolved, err := ResolveBinPath("llama-server")
 	if err != nil {
-		t.Errorf("Se esperaba encontrar fake-tool.exe, se obtuvo error: %v", err)
+		t.Errorf("Error buscando llama-server: %v", err)
 	}
-	if !strings.HasSuffix(resolved, "fake-tool.exe") {
-		t.Errorf("Ruta resuelta no parece correcta: %s", resolved)
+	if !strings.HasSuffix(resolved, "llama-server") {
+		t.Errorf("Ruta incorrecta: %s", resolved)
 	}
-}
 
-func TestRunInteractiveArgs(t *testing.T) {
-	// Prueba para asegurar que la lógca básica no genera pánicos
-	// No ejecutaremos realmente RunInteractive para no abrir ventanas durante testing,
-	// pero podríamos aislar la lógica de construcción del string si fuese necesario.
-	// Por ahora el test pasa simplemente verificando que el test framework corre.
-	t.Log("Test de executor funciona correctamente")
+	// 2. Buscar binario pasando .exe cuando en disco es nativo sin .exe
+	resolvedExe, err := ResolveBinPath("llama-server.exe")
+	if err != nil {
+		t.Errorf("Error buscando llama-server.exe (variación): %v", err)
+	}
+	if !strings.HasSuffix(resolvedExe, "llama-server") {
+		t.Errorf("Ruta incorrecta: %s", resolvedExe)
+	}
+
+	// 3. Buscar binario en subcarpeta (sub-release)
+	resolvedSub, err := ResolveBinPath("llama-cli")
+	if err != nil {
+		t.Errorf("Error buscando llama-cli en subdirectorio: %v", err)
+	}
+	if !strings.HasSuffix(resolvedSub, filepath.Join("sub-release", "llama-cli")) {
+		t.Errorf("Ruta de subdirectorio incorrecta: %s", resolvedSub)
+	}
 }

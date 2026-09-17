@@ -1,0 +1,4 @@
+#!/bin/bash
+# Forzar directorio de trabajo para que encuentre "public/"
+cd /opt/llamamanager
+./LlamaManager-Server

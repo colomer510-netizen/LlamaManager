@@ -1,0 +1,7 @@
+Package: llamamanager
+Version: 4.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Enoc
+Description: Gestor Web Avanzado para modelos locales llama.cpp

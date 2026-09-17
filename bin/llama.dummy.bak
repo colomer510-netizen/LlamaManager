@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "Dummy llama called with: $@" >> /tmp/dummy_llama.log
+if [ "$1" == "serve" ]; then
+    # Start a dummy python web server on the requested port to simulate llama-ui
+    PORT=$(echo "$@" | grep -oP '--port \K\d+')
+    python3 -m http.server $PORT &
+    echo $! > /tmp/dummy_llama.pid
+    wait
+fi

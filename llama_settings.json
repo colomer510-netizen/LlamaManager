@@ -1,0 +1,8 @@
+{
+  "model_path": "/home/enoc-colomer/Documentos",
+  "api_port": "8080",
+  "context_size": 2048,
+  "gpu_layers": 0,
+  "force_cpu": false,
+  "rpc_servers": ""
+}
