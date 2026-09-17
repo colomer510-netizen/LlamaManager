@@ -45,7 +45,7 @@ func monitorHeartbeat() {
 	for {
 		time.Sleep(5 * time.Second)
 		heartbeatMu.Lock()
-		if time.Since(lastHeartbeat) > 15*time.Second {
+		if time.Since(lastHeartbeat) > 120*time.Second {
 			// Matar el modelo si estaba corriendo
 			activeLlamaMu.Lock()
 			if activeLlamaCmd != nil && activeLlamaCmd.Process != nil {
@@ -389,6 +389,13 @@ func shutdownServer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "msg": "Apagando el gestor..."})
 	
+	// Matar el modelo si estaba corriendo
+	activeLlamaMu.Lock()
+	if activeLlamaCmd != nil && activeLlamaCmd.Process != nil {
+		activeLlamaCmd.Process.Kill()
+	}
+	activeLlamaMu.Unlock()
+
 	// Salir del programa limpiamente
 	go func() {
 		os.Exit(0)
